@@ -1,0 +1,2840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #info {
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            padding: 10px;
+            text-align: center;
+            color: #ffff00
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+    </style>
+</head>
+<body>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://raw.githack.com/mrdoob/three.js/dev/examples/js/loaders/MTLLoader.js"></script>
+    <script src="https://raw.githack.com/mrdoob/three.js/dev/examples/js/loaders/OBJLoader.js"></script>
+
+
+    
+    <script>
+        var camera, scene, renderer, cameraHUD;
+var leftdoor, rightdoor, windowdoor;
+var wallheight = 60,  windowsize = 40;
+var lightstate1 = 0,  lightstate2 = 0,  lightstate3 = 0;
+var light1, light2, light3;
+var rightwallstate = 1,  leftwallstate = 1,  windowdoorstate = 1;
+var mouse = new THREE.Vector2();
+var raycaster = new THREE.Raycaster();
+var rightlightpickables = [],  leftlightpickables = [],  rightdoorpickables = [],  leftdoorpickables = [],  windowdoorpickables = [],  windowlightpickables = [],  camerapickables = [],
+  rightmappickables = [],  leftmappickables = [];
+var rotationy = 0,  viewpoint = 1;var Time, usage = 1,  power = 360;
+var roomlight;
+var quickswitch = 0,  switchflag = 0;
+var test = new THREE.Vector3(0, 0, 0);
+var breturndegree = new THREE.Vector3(0, 0, 0);
+var returndegree = new THREE.Vector3(10, 0, 0);
+var tablet, tabletbody, fliptheta = 0,  pickup = 0;
+var hudmap, outcameraflag = 0,car;
+
+init();
+animate();
+
+
+
+
+
+
+function init() {
+
+
+  scene = new THREE.Scene();
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  document.body.appendChild(renderer.domElement);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 2000);
+  camera.position.z = 10;
+  camera.position.y = 1000;
+  
+  
+
+  cameraHUD = new THREE.OrthographicCamera(-10, 10, 10, -10, -10, 1600);
+  cameraHUD.position.z = 1580;
+
+  sceneHUD = new THREE.Scene();
+  //camera.lookAt(0,200,-100);
+  //////////////////OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOrbit here////////////////////////////////////
+  let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  ////////////////////////////////////////////////////////////////
+  //var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  //scene.add(gridXZ);
+	var dininglight = new THREE.PointLight(0xffffff, 1, 0);
+  dininglight.position.set(0, 250, -800);
+  scene.add(dininglight);
+  
+  var kitchenlight = new THREE.PointLight(0xffffff, 1, 400);
+  kitchenlight.position.set(-650, 150, -750);
+  scene.add(kitchenlight);
+
+  ///////////////////////////////////////////////////////  floor
+  loader.crossOrigin='';
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/DrvlmNW.jpg');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+
+  var geometry = new THREE.PlaneGeometry(205, 205, 32);
+  var plane = new THREE.Mesh(geometry, texMat);
+  scene.add(plane);
+  plane.rotation.x = -Math.PI / 2;
+  /////////////////////////////////////////   light
+  roomlight = new THREE.PointLight(0xffffff, 1, 0);
+  roomlight.position.set(0, 50, 0);
+  scene.add(roomlight);
+  /////right light
+  light1 = new THREE.PointLight(0xffffff, 1, 1);
+  light1.position.set(150, 50, -20);
+  scene.add(light1);
+
+  light11 = new THREE.PointLight(0xffffff, 1, 1);
+  light11.position.set(150, 50, -140);
+  scene.add(light11);
+  /////left light
+  light2 = new THREE.PointLight(0xffffff, 1, 1);
+  light2.position.set(-150, 50, -20);
+  scene.add(light2);
+
+  light21 = new THREE.PointLight(0xffffff, 1, 1);
+  light21.position.set(-150, 50, -140);
+  scene.add(light21);
+
+  /////window light
+  light3 = new THREE.PointLight(0xffffff, 1, 1);
+  light3.position.set(0, wallheight + windowsize / 2 + windowsize / 2 - 6, 100 + 25 / 2 + 5);
+  scene.add(light3);
+
+  /////////////////////////////////////////////////////////////////
+  /*var testlight = new THREE.PointLight(0xffffff, 1 , 2000);
+  testlight.position.set(0, 50, 200);
+  scene.add(testlight);*/
+
+
+
+  var geometry = new THREE.BoxGeometry(200, wallheight , 5);
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/iU1gtzm.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  var initwall1 = new THREE.Mesh(geometry, texMat);
+  scene.add(initwall1);
+  initwall1.position.set(0, wallheight / 2 , 100);
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/L6OkHzh.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var initwall2 = new THREE.Mesh(geometry, texMat);
+  scene.add(initwall2);
+  initwall2.position.set(0, wallheight / 2 - 10, -100);
+
+  // set door size
+  var doorsize = 30;
+  makewall(doorsize, wallheight);
+  openrightdoor();
+  openleftdoor();
+
+  
+  maketable();
+
+  ///var windowsize = 40;
+  makewindow(wallheight, windowsize);
+  openwindowdoor();
+
+  makebuttoms(wallheight, doorsize);
+
+  ////view point
+  document.addEventListener('mousemove', onDocumentMouseMove, false);
+  //set camera to look front
+  camera.lookAt(0, 40, -100);
+
+
+  /////outside
+  makeoutside();
+
+  
+  makeboxes();
+
+  
+  
+  makediningroom();
+  Time = new THREE.Clock();
+
+
+  ///test OBJ
+  //var refrigerator = readModel('Refrigerator_01', 40)
+
+  //scene.add(refrigerator);
+
+  car = new THREE.Group();
+  readModel('Refrigerator_01');
+  scene.add(car);
+  
+	/*
+  camera.position.x = -120;
+  camera.position.y = 100;
+  camera.position.z = 80;
+  camera.lookAt(-140,10,-50);
+  */
+  
+  renderer.autoClear = false;
+
+  //document.addEventListener("keydown", onDocumentKeyDown, false);
+
+}
+
+function animate() {
+	  	
+  requestAnimationFrame(animate);
+  render();
+  //camerarotation(rotationy);
+  windowflashing();
+  rightflashing();
+  leftflashing();
+  
+  
+}
+
+function render() {
+  renderer.clear(true);
+  renderer.render(scene, camera);
+  renderer.render(sceneHUD, cameraHUD);
+}
+
+function windowflashing() {
+
+  if (lightstate3 == 1) {
+
+    if (Time.elapsedTime % 3 < 1) {
+      light3.distance = 50;
+    } else if (Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2) {
+      light3.distance = 40;
+    } else if (Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3) {
+      light3.distance = 50;
+    } else if (Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5) {
+      light3.distance = 35;
+    } else if (Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2) {
+      light3.distance = 50;
+    } else if (Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3) {
+      light3.distance = 40;
+    } else if (Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5) {
+      light3.distance = 50;
+    } else if (Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7) {
+      light3.distance = 40;
+    } else {
+      light3.distance = 50;
+    }
+  } else light3.distance = 1;
+
+}
+
+function rightflashing() {
+
+  if (lightstate1 == 1) {
+
+    light11.distance = 65;
+
+    if (Time.elapsedTime % 3 < 1) {
+      light1.distance = 65;
+    } else if (Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2) {
+      light1.distance = 45;
+      light11.distance = 65;
+    } else if (Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3) {
+      light1.distance = 65;
+      light11.distance = 55;
+    } else if (Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5) {
+      light1.distance = 35;
+      light11.distance = 65;
+    } else if (Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2) {
+      light1.distance = 65;
+      light11.distance = 55;
+    } else if (Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3) {
+      light1.distance = 45;
+      light11.distance = 65;
+    } else if (Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5) {
+      light1.distance = 65;
+    } else if (Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7) {
+      light1.distance = 45;
+    } else {
+      light1.distance = 65;
+    }
+  } else {
+    light1.distance = 1;
+    light11.distance = 1;
+  }
+
+}
+
+function leftflashing() {
+
+  if (lightstate2 == 1) {
+
+    light21.distance = 65;
+
+    if (Time.elapsedTime % 3 < 1) {
+      light2.distance = 65;
+    } else if (Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2) {
+      light2.distance = 45;
+      light21.distance = 65;
+    } else if (Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3) {
+      light2.distance = 65;
+      light21.distance = 55;
+    } else if (Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5) {
+      light2.distance = 35;
+      light21.distance = 65;
+    } else if (Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2) {
+      light2.distance = 65;
+      light21.distance = 55;
+    } else if (Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3) {
+      light2.distance = 45;
+      light21.distance = 65;
+    } else if (Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5) {
+      light2.distance = 65;
+    } else if (Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7) {
+      light2.distance = 45;
+    } else {
+      light2.distance = 65;
+    }
+  } else {
+    light2.distance = 1;
+    light21.distance = 1;
+  }
+}
+
+
+function maketable() {
+
+
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/S1ilknr.png');
+
+  var texMat = new THREE.MeshBasicMaterial({
+    map: texture
+  });
+
+  var material = new THREE.MeshNormalMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide
+  });
+
+  var geometry = new THREE.BoxGeometry(100, 50, 10 );
+  var monitor = new THREE.Mesh(geometry, texMat);
+  scene.add(monitor);
+  monitor.position.set(0, 60, -95);
+  
+  
+  var geometry = new THREE.BoxGeometry(30, 30, 5 );
+  var monitor2 = new THREE.Mesh(geometry, texMat);
+  scene.add(monitor2);
+  monitor2.position.set(70, 50, -70);
+  monitor2.rotation.y -= Math.PI/4;
+  
+  
+  var geometry = new THREE.BoxGeometry(30, 20, 5 );
+  var monitor3 = new THREE.Mesh(geometry, texMat);
+  scene.add(monitor3);
+  monitor3.position.set(-70, 45, -75);
+  monitor3.rotation.y += Math.PI/4 ;
+  
+  
+  
+  
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/pZgBo3R.jpg');
+
+  var texMat = new THREE.MeshBasicMaterial({
+    map: texture
+  });
+  
+  var texture2 = new THREE.TextureLoader().load('https://i.imgur.com/Wvoy1mm.jpg');
+
+  var texMat2 = new THREE.MeshBasicMaterial({
+    map: texture2
+  });
+  
+  
+  
+  var geometry = new THREE.Geometry();
+
+	geometry = new THREE.Geometry();
+  geometry.vertices.push(
+    new THREE.Vector3(-50,0,0),
+    new THREE.Vector3(-50,0,-20),
+    new THREE.Vector3(-50,35,-20),
+    new THREE.Vector3(-50,20,0),
+    new THREE.Vector3(50,0,0),
+    new THREE.Vector3(50,0,-20),
+    new THREE.Vector3(50,35,-20),
+    new THREE.Vector3(50,20,0)
+  );
+  geometry.faces.push(
+    new THREE.Face3(0,2,1),
+    new THREE.Face3(0,3,2),
+    new THREE.Face3(0,4,3),
+    new THREE.Face3(4,7,3),
+    new THREE.Face3(4,6,7),
+    new THREE.Face3(4,5,6),
+    new THREE.Face3(3,7,2),
+    new THREE.Face3(7,6,2),
+    new THREE.Face3(1,6,5),
+    new THREE.Face3(6,1,2),
+    new THREE.Face3(1,4,0),
+    new THREE.Face3(5,4,1)
+  );
+  
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.15,0), new THREE.Vector2(0.8, 0), new THREE.Vector2(0.15,0.5)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.8,0), new THREE.Vector2(0.8, 0.5), new THREE.Vector2(0.15,0.5)]);
+  
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.15,0.5), new THREE.Vector2(0.8, 0.5), new THREE.Vector2(0.15,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.8,0.5), new THREE.Vector2(0.8, 1), new THREE.Vector2(0.15,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+
+  
+  var table = new THREE.Mesh(geometry, texMat);
+  scene.add(table);
+  table.position.set(0, 0, -70);
+
+	geometry = new THREE.Geometry();
+  
+  
+  geometry.vertices.push(
+    new THREE.Vector3(-80,0,-30),
+    new THREE.Vector3(-80,0,-50),
+    new THREE.Vector3(-80,35,-50),
+    new THREE.Vector3(-80,20,-30),
+    new THREE.Vector3(-50,0,-70),
+    new THREE.Vector3(-50,0,-90),
+    new THREE.Vector3(-50,35,-90),
+    new THREE.Vector3(-50,20,-70)
+  );
+  geometry.faces.push(
+    new THREE.Face3(0,2,1),
+    new THREE.Face3(0,3,2),
+    new THREE.Face3(0,4,3),
+    new THREE.Face3(4,7,3),
+    new THREE.Face3(4,6,7),
+    new THREE.Face3(4,5,6),
+    new THREE.Face3(3,7,2),
+    new THREE.Face3(7,6,2),
+    new THREE.Face3(1,6,5),
+    new THREE.Face3(6,1,2),
+    new THREE.Face3(1,4,0),
+    new THREE.Face3(5,4,1)
+  );
+  
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.3,0), new THREE.Vector2(0.7, 0), new THREE.Vector2(0.3,0.5)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.7,0), new THREE.Vector2(0.7, 0.5), new THREE.Vector2(0.3,0.5)]);
+  
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.3,0.5), new THREE.Vector2(0.7, 0.5), new THREE.Vector2(0.3,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.7,0.5), new THREE.Vector2(0.7, 1), new THREE.Vector2(0.3,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  
+  
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+  
+	var table2 = new THREE.Mesh(geometry, texMat);
+  scene.add(table2);
+
+	geometry = new THREE.Geometry();
+
+
+	geometry.vertices.push(
+    new THREE.Vector3(50,0,-70),
+    new THREE.Vector3(50,0,-90),
+    new THREE.Vector3(50,35,-90),
+    new THREE.Vector3(50,20,-70),
+    new THREE.Vector3(80,0,-30),
+    new THREE.Vector3(80,0,-50),
+    new THREE.Vector3(80,35,-50),
+    new THREE.Vector3(80,20,-30)
+  );
+  geometry.faces.push(
+    new THREE.Face3(0,2,1),
+    new THREE.Face3(0,3,2),
+    new THREE.Face3(0,4,3),
+    new THREE.Face3(4,7,3),
+    new THREE.Face3(4,6,7),
+    new THREE.Face3(4,5,6),
+    new THREE.Face3(3,7,2),
+    new THREE.Face3(7,6,2),
+    new THREE.Face3(1,6,5),
+    new THREE.Face3(6,1,2),
+    new THREE.Face3(1,4,0),
+    new THREE.Face3(5,4,1)
+  );
+	
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.25,0), new THREE.Vector2(0.7, 0), new THREE.Vector2(0.25,0.5)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.7,0), new THREE.Vector2(0.7, 0.5), new THREE.Vector2(0.25,0.5)]);
+  
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.25,0.5), new THREE.Vector2(0.7, 0.5), new THREE.Vector2(0.25,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.7,0.5), new THREE.Vector2(0.7, 1), new THREE.Vector2(0.25,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  
+  
+  
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+  
+  
+  var table3 = new THREE.Mesh(geometry, texMat2);
+  scene.add(table3);
+	
+  geometry = new THREE.Geometry();
+
+
+	geometry.vertices.push(
+    new THREE.Vector3(80,0,-30 - 0.01),
+    new THREE.Vector3(80,0,-50),
+    new THREE.Vector3(80,35,-50),
+    new THREE.Vector3(80,20,-30 - 0.01),
+  	new THREE.Vector3(100,0,-30 - 0.01),
+    new THREE.Vector3(100,0,-50),
+    new THREE.Vector3(100,35,-50),
+    new THREE.Vector3(100,20,-30 - 0.01)
+  );
+  geometry.faces.push(
+    new THREE.Face3(0,2,1),
+    new THREE.Face3(0,3,2),
+    new THREE.Face3(0,4,3),
+    new THREE.Face3(4,7,3),
+    new THREE.Face3(4,6,7),
+    new THREE.Face3(4,5,6),
+    new THREE.Face3(3,7,2),
+    new THREE.Face3(7,6,2),
+    new THREE.Face3(1,6,5),
+    new THREE.Face3(6,1,2),
+    new THREE.Face3(1,4,0),
+    new THREE.Face3(5,4,1)
+  );
+	
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.5,0), new THREE.Vector2(0.7, 0), new THREE.Vector2(0.5,0.5)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.7,0), new THREE.Vector2(0.7, 0.5), new THREE.Vector2(0.5,0.5)]);
+  
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.5,0.5), new THREE.Vector2(0.7, 0.5), new THREE.Vector2(0.5,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.7,0.5), new THREE.Vector2(0.7, 1), new THREE.Vector2(0.5,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  
+  
+  
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+  
+  
+  var table4 = new THREE.Mesh(geometry, texMat2);
+  scene.add(table4);
+	
+  
+  geometry = new THREE.Geometry();
+
+
+	geometry.vertices.push(
+    new THREE.Vector3(-100,0,-30 - 0.01),
+    new THREE.Vector3(-100,0,-50),
+    new THREE.Vector3(-100,35,-50),
+    new THREE.Vector3(-100,20,-30 - 0.01),
+    new THREE.Vector3(-80,0,-30 - 0.01),
+    new THREE.Vector3(-80,0,-50),
+    new THREE.Vector3(-80,35,-50),
+    new THREE.Vector3(-80,20,-30 - 0.01)
+  );
+  geometry.faces.push(
+    new THREE.Face3(0,2,1),
+    new THREE.Face3(0,3,2),
+    new THREE.Face3(0,4,3),
+    new THREE.Face3(4,7,3),
+    new THREE.Face3(4,6,7),
+    new THREE.Face3(4,5,6),
+    new THREE.Face3(3,7,2),
+    new THREE.Face3(7,6,2),
+    new THREE.Face3(1,6,5),
+    new THREE.Face3(6,1,2),
+    new THREE.Face3(1,4,0),
+    new THREE.Face3(5,4,1)
+  );
+	
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.25,0), new THREE.Vector2(0.5, 0), new THREE.Vector2(0.25,0.5)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.5,0), new THREE.Vector2(0.5, 0.5), new THREE.Vector2(0.25,0.5)]);
+  
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.25,0.5), new THREE.Vector2(0.5, 0.5), new THREE.Vector2(0.25,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.5,0.5), new THREE.Vector2(0.5, 1), new THREE.Vector2(0.25,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0,0), new THREE.Vector2(1, 0), new THREE.Vector2(0,1)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(1,0), new THREE.Vector2(1, 1), new THREE.Vector2(0,1)]);
+  
+  
+  
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+  
+  
+  var table5 = new THREE.Mesh(geometry, texMat);
+  scene.add(table5);
+  
+  
+  
+  geometry = new THREE.Geometry();
+
+
+	geometry.vertices.push(
+    new THREE.Vector3(-50,35,-90),
+    new THREE.Vector3(-80,35,-50),
+    new THREE.Vector3(-100,35,-50),
+    new THREE.Vector3(-100,35,-90)
+  );
+  geometry.faces.push(
+    new THREE.Face3(0,2,1),
+    new THREE.Face3(0,3,2)
+  );
+	
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.5,0.5), new THREE.Vector2(0.2, 0.2), new THREE.Vector2(0.3,0.2)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.5,0.5), new THREE.Vector2(0.2, 0.5), new THREE.Vector2(0.2,0.2)]);
+  
+  
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+  
+  
+  var table6 = new THREE.Mesh(geometry, texMat);
+  scene.add(table6);
+  
+  
+  geometry = new THREE.Geometry();
+
+
+	geometry.vertices.push(
+    new THREE.Vector3(50,35,-90),
+    new THREE.Vector3(80,35,-50),
+    new THREE.Vector3(100,35,-50),
+    new THREE.Vector3(100,35,-90)
+  );
+  geometry.faces.push(
+    new THREE.Face3(0,1,2),
+    new THREE.Face3(0,2,3)
+  );
+	
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.2,0.5), new THREE.Vector2(0.3, 0.2), new THREE.Vector2(0.5,0.2)]);
+  geometry.faceVertexUvs[0].push([new THREE.Vector2(0.2,0.5), new THREE.Vector2(0.5, 0.2), new THREE.Vector2(0.5,0.5)]);
+  
+  
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+  
+  
+  var table7 = new THREE.Mesh(geometry, texMat);
+  scene.add(table7);
+
+}
+
+function makewall(Dsize, wallheight) {
+  /*
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/z9pJWLV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  var geometry = new THREE.BoxGeometry(5.1, 120, 200);
+  var rightwall = new THREE.Mesh(geometry, texMat);
+  scene.add(rightwall);
+  rightwall.position.set(100, 60, 0);
+  */
+	var geometry = new THREE.BoxGeometry(5, wallheight ,100);
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/nwTSw4l.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var rightwall = new THREE.Mesh(geometry, texMat);
+  scene.add(rightwall);
+  rightwall.position.set(100, wallheight / 2 - 10, 50);
+  
+  var geometry = new THREE.BoxGeometry(5, wallheight ,100);
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/gIqf5Lb.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var leftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(leftwall);
+  leftwall.position.set(-100, wallheight / 2 - 10, 50);
+
+  
+  var geometry = new THREE.BoxGeometry(5, wallheight, 100 - Dsize);
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/2nQfXeF.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var rightwall2 = new THREE.Mesh(geometry, texMat);
+  scene.add(rightwall2);
+  rightwall2.position.set(100, wallheight / 2 - 10, -100 + (100 - Dsize) / 2);
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/7FI95WC.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var leftwall2 = new THREE.Mesh(geometry, texMat);
+  scene.add(leftwall2);
+  leftwall2.position.set(-100, wallheight / 2 - 10, -100 + (100 - Dsize) / 2);
+
+  ///////////////////////////door//////////////////////////
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/awWOSCI.jpg');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+
+
+  var geometry = new THREE.BoxGeometry(4.9, wallheight, Dsize);
+  rightdoor = new THREE.Mesh(geometry, texMat);
+  rightdoor.position.set(100, wallheight / 2, -1 * Dsize / 2);
+  scene.add(rightdoor);
+  leftdoor = new THREE.Mesh(geometry, texMat);
+  leftdoor.position.set(-100, wallheight / 2, -1 * Dsize / 2);
+  scene.add(leftdoor);
+
+}
+///////////////////////////////////////////////////////////////////
+function makewindow(wallheight, windowsize) {
+	
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/pzdqvl6.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+
+  var geometry = new THREE.BoxGeometry(windowsize, windowsize, 5);
+  windowdoor = new THREE.Mesh(geometry, texMat);
+
+  windowdoor.position.set(0, wallheight + windowsize / 2, 100 - 0.01)
+  scene.add(windowdoor);
+
+
+  ///////////////front walls///////////////////
+  var geometry = new THREE.BoxGeometry(200, windowsize + 20, 5);
+  var material = new THREE.MeshPhongMaterial({
+    color: 0x5c4332,
+    side: THREE.DoubleSide
+  });
+  //front
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/w20eRrs.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var walls1 = new THREE.Mesh(geometry, texMat);
+  scene.add(walls1);
+  walls1.position.set(0, wallheight + windowsize / 2, -100);
+  ///////////////right and left walls///////////////////
+  var geometry = new THREE.BoxGeometry(5, windowsize + 20, 200);
+  //right
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/6rpZyxp.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+
+  var walls2 = new THREE.Mesh(geometry, texMat);
+  scene.add(walls2);
+  walls2.position.set(100, wallheight + windowsize / 2, 0);
+  //left
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/CaIo9vS.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var walls3 = new THREE.Mesh(geometry, texMat);
+  scene.add(walls3);
+  walls3.position.set(-100, wallheight + windowsize / 2, 0);
+
+  ///////////////right and left walls///////////////////
+  var geometry = new THREE.BoxGeometry((200 - windowsize) / 2, windowsize, 5);
+  //back left
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/BWZ4az3.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var walls4 = new THREE.Mesh(geometry, texMat);
+  scene.add(walls4);
+  walls4.position.set(windowsize / 2 + (200 - windowsize) / 2 / 2, wallheight + windowsize / 2, 100);
+  //back right
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/1aG8ivb.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var walls5 = new THREE.Mesh(geometry, texMat);
+  scene.add(walls5);
+  walls5.position.set(-(windowsize / 2 + (200 - windowsize) / 2 / 2), wallheight + windowsize / 2, 100);
+
+
+
+  var geometry = new THREE.BoxGeometry(2, windowsize, 80);
+
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/ZUWRF8R.jpg');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+
+  var windows1 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows1);
+  windows1.position.set(windowsize / 2 - 1, wallheight + windowsize / 2, 100 + 40 - 2.5)
+
+  var windows2 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows2);
+  windows2.position.set(-windowsize / 2 + 1, wallheight + windowsize / 2, 100 + 40 - 2.5)
+
+  var geometry = new THREE.BoxGeometry(windowsize - 4, 2, 40);
+
+  var windows3 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows3);
+  windows3.position.set(0, wallheight + windowsize / 2 + windowsize / 2 - 1, 100 + 20 - 2.5)
+
+  var geometry = new THREE.BoxGeometry(windowsize - 4, 2, 80);
+
+  var windows4 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows4);
+  windows4.position.set(0, wallheight + windowsize / 2 - windowsize / 2 + 1, 100 + 40 - 2.5)
+
+  var geometry = new THREE.BoxGeometry(40, 80, 2);
+
+  var windows5 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows5);
+  windows5.position.set(0, wallheight + windowsize / 2 - windowsize / 2 + 40, 100 + 80 - 2.5)
+
+
+  var geometry = new THREE.BoxGeometry(2, 40, 40);
+
+  var windows6 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows6);
+  windows6.position.set(20 - 1, wallheight + windowsize / 2 - windowsize / 2 + 60, 100 + 60 - 2.5)
+
+  var windows7 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows7);
+  windows7.position.set(-20 + 1, wallheight + windowsize / 2 - windowsize / 2 + 60, 100 + 60 - 2.5)
+
+  var windowlightbox = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 25), new THREE.MeshPhongMaterial({
+    color: 0xffffff
+  }))
+  scene.add(windowlightbox);
+  windowlightbox.position.set(0, wallheight + windowsize / 2 + windowsize / 2 - 3, 100 + 25 / 2 + 5)
+}
+
+function openrightdoor() {
+  for (var i = 0; i < wallheight;) {
+    rightdoor.position.y += 0.01;
+    i = i + 0.01;
+  }
+}
+
+function closerightdoor() {
+  for (var i = 0; i < wallheight;) {
+    rightdoor.position.y -= 0.01;
+    i = i + 0.01;
+  }
+}
+
+function openleftdoor() {
+  for (var i = 0; i < wallheight;) {
+    leftdoor.position.y += 0.01;
+    i = i + 0.01;
+  }
+}
+
+function closeleftdoor() {
+  for (var i = 0; i < wallheight;) {
+    leftdoor.position.y -= 0.01;
+    i = i + 0.01;
+  }
+}
+
+function openwindowdoor() {
+  for (var i = 0; i < windowsize;) {
+    windowdoor.position.y += 0.01;
+    i = i + 0.01;
+  }
+}
+
+function closewindowdoor() {
+  for (var i = 0; i < windowsize;) {
+    windowdoor.position.y -= 0.01;
+    i = i + 0.01;
+  }
+}
+
+function onDocumentMouseMove(event) {
+
+  event.preventDefault();
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  //mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  if (mouse.x > 0.3 && viewpoint == 1) rotationy = (mouse.x - 0.3) * 2;
+  else if (mouse.x < -0.3 && viewpoint == 1) rotationy = (mouse.x + 0.3) * 2;
+  else rotationy = 0;
+
+
+}
+
+function makebuttoms(wallheight, doorsize) {
+  /// set door buttom 
+  var geometry = new THREE.BoxGeometry(2, 5, 5);
+  var material = new THREE.MeshPhongMaterial({
+    color: 0xff0000,
+    side: THREE.DoubleSide
+  });
+  var rightdoorbuttom = new THREE.Mesh(geometry, material);
+  scene.add(rightdoorbuttom);
+  rightdoorbuttom.position.set(30, 30, -82);
+  rightdoorbuttom.rotation.y += Math.PI/2;
+  rightdoorbuttom.rotation.x -= 0.92;
+  rightdoorpickables.push(rightdoorbuttom);
+  var leftdoorbuttom = new THREE.Mesh(geometry, material);
+  scene.add(leftdoorbuttom);
+  leftdoorbuttom.position.set(-30, 30,-82);
+  leftdoorbuttom.rotation.y += Math.PI/2;
+  leftdoorbuttom.rotation.x -= 0.92;
+  leftdoorpickables.push(leftdoorbuttom);
+  //// door buttom
+  document.addEventListener('mousedown', rightsidedoor, false);
+  document.addEventListener('mousedown', leftsidedoor, false);
+
+
+  //window door buttom
+  var geometry = new THREE.BoxGeometry(5, 5, 2);
+  var windowdoorbuttom = new THREE.Mesh(geometry, material);
+  scene.add(windowdoorbuttom);
+  windowdoorbuttom.position.set(-25, wallheight + 10, 100 - 5);
+  windowdoorpickables.push(windowdoorbuttom);
+
+  document.addEventListener('mousedown', windowsidedoor, false);
+
+  /// set light buttom
+  var geometry = new THREE.BoxGeometry(2, 5, 5);
+  var material = new THREE.MeshPhongMaterial({
+    color: 0xf5f5f5,
+    side: THREE.DoubleSide
+  });
+  var rightlightbuttom = new THREE.Mesh(geometry, material);
+  scene.add(rightlightbuttom);
+  rightlightbuttom.position.set(30, 24, -74);
+  rightlightbuttom.rotation.y += Math.PI/2;
+  rightlightbuttom.rotation.x -= 0.92;
+  rightlightpickables.push(rightlightbuttom);
+  var leftlightbuttom = new THREE.Mesh(geometry, material);
+  scene.add(leftlightbuttom);
+  leftlightbuttom.position.set(-30, 24, -74);
+  leftlightbuttom.rotation.y += Math.PI/2;
+  leftlightbuttom.rotation.x -= 0.92;
+  leftlightpickables.push(leftlightbuttom);
+
+  //// light buttom
+  document.addEventListener('mousedown', rightsidelight, false);
+  document.addEventListener('mousedown', leftsidelight, false);
+
+
+
+  //window light buttom
+  var geometry = new THREE.BoxGeometry(5, 5, 2);
+  var windowlightbuttom = new THREE.Mesh(geometry, material);
+  scene.add(windowlightbuttom);
+  windowlightbuttom.position.set(-25, wallheight + 2.5, 100 - 5);
+  windowlightpickables.push(windowlightbuttom);
+
+  document.addEventListener('mousedown', windowsidelight, false);
+
+}
+
+function rightsidedoor(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // find intersections
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(rightdoorpickables, false);
+  if (intersects.length > 0) {
+    if (rightwallstate == 0) {
+      openrightdoor();
+      rightwallstate = 1;
+    } else if (rightwallstate == 1) {
+      closerightdoor();
+      rightwallstate = 0;
+    }
+  }
+}
+
+function leftsidedoor(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // find intersections
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(leftdoorpickables, false);
+  if (intersects.length > 0) {
+    if (leftwallstate == 0) {
+      openleftdoor();
+      leftwallstate = 1;
+    } else if (leftwallstate == 1) {
+      closeleftdoor();
+      leftwallstate = 0;
+    }
+  }
+}
+
+function windowsidedoor(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // find intersections
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(windowdoorpickables, false);
+  if (intersects.length > 0) {
+    if (windowdoorstate == 0) {
+      openwindowdoor();
+      windowdoorstate = 1;
+    } else if (windowdoorstate == 1) {
+      closewindowdoor();
+      windowdoorstate = 0;
+    }
+  }
+}
+
+function rightsidelight(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // find intersections
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(rightlightpickables, false);
+  if (intersects.length > 0) {
+    //rightlight();
+    if (lightstate1 == 0) lightstate1 = 1;
+    else if (lightstate1 == 1) lightstate1 = 0;
+  }
+}
+
+function leftsidelight(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // find intersections
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(leftlightpickables, false);
+  if (intersects.length > 0) {
+    //leftlight();
+    if (lightstate2 == 0) lightstate2 = 1;
+    else if (lightstate2 == 1) lightstate2 = 0;
+  }
+}
+
+function windowsidelight(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  // find intersections
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(windowlightpickables, false);
+  if (intersects.length > 0) {
+    //windowlight();
+    if (lightstate3 == 0) lightstate3 = 1;
+    else if (lightstate3 == 1) lightstate3 = 0;
+  }
+}
+
+function camerarotation(x) {
+
+	var camerarotate = new THREE.Vector3();
+  camera.getWorldDirection(camerarotate);
+  //console.log('c.z = '+camerarotate.z+' x ='+x+' c.x = '+camerarotate.x);
+  if (viewpoint != 1) rotationy = 0;
+  else if (quickswitch == 0 && camerarotate.z < -0.2) camera.rotation.y -= x / 100;
+  else if (camerarotate.z < -0.2) camera.rotation.y += x / 100;
+  else if (camerarotate.z < -0.1 && x > 0 && camerarotate.x < 0) camera.rotation.y -= x / 100;
+  else if (camerarotate.z < -0.1 && x < 0 && camerarotate.x > 0) camera.rotation.y -= x / 100;
+}
+
+
+
+function makeoutside() {
+
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/FM8caZz.jpg');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+
+
+  var geometry = new THREE.PlaneGeometry(405, 450, 32);
+  var corridor = new THREE.Mesh(geometry, texMat);
+  scene.add(corridor);
+  corridor.rotation.x = -Math.PI / 2;
+  corridor.position.y = -0.1;
+  corridor.position.z = -125;
+
+
+
+
+  var loader = new THREE.TextureLoader()
+  loader.crossOrigin = '';
+
+  texture = loader.load('https://i.imgur.com/G634HPV.png');
+
+  texture.repeat.set(1.5, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+
+  var outwalls1 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 300),
+    new THREE.MeshPhongMaterial({
+      map: texture
+    }))
+  scene.add(outwalls1);
+  outwalls1.position.set(-200, 50, -50)
+
+
+
+
+  var outwalls2 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 300),
+    new THREE.MeshPhongMaterial({
+      map: texture
+    }))
+  scene.add(outwalls2);
+  outwalls2.position.set(200, 50, -50)
+
+	
+  var texture = loader.load('https://i.imgur.com/G634HPV.png');
+
+  texture.repeat.set(1, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  
+  var outwalls3 = new THREE.Mesh(new THREE.BoxGeometry(209.9, 100, 0),
+    new THREE.MeshPhongMaterial({
+      map: texture
+    }))
+  scene.add(outwalls3);
+  outwalls3.position.set(0, 50, -200)
+  
+  var texture = loader.load('https://i.imgur.com/G634HPV.png');
+
+  texture.repeat.set(0.75, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var outwalls4 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 155),
+    new THREE.MeshPhongMaterial({
+      map: texture
+    }))
+  scene.add(outwalls4);
+  outwalls4.position.set(-200, 50, -277.4)
+
+
+  var outwalls5 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 155),
+    new THREE.MeshPhongMaterial({
+      map: texture
+    }))
+  scene.add(outwalls5);
+  outwalls5.position.set(200, 50, -277.4)
+  
+  
+  var outwalls7 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 150),
+    new THREE.MeshPhongMaterial({
+      map: texture
+    }))
+  scene.add(outwalls7);
+  outwalls7.position.set(-100, 50, -275)
+
+
+  var outwalls8 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 150),
+    new THREE.MeshPhongMaterial({
+      map: texture
+    }))
+  scene.add(outwalls8);
+  outwalls8.position.set(100, 50, -275)
+
+}
+
+function makediningroom(){
+
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/mdXDao3.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+	
+  texture.repeat.set(6, 18/5);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+
+  
+  var geometry = new THREE.PlaneGeometry(1000, 600);
+  var diningfloor = new THREE.Mesh(geometry, texMat);
+  scene.add(diningfloor);
+  diningfloor.rotation.x = -Math.PI / 2;
+  diningfloor.position.y = -0.05;
+  diningfloor.position.z = -650;
+  
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(2, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+	
+  var geometry = new THREE.BoxGeometry(409.9, 100, 10);
+  var frontwall1 = new THREE.Mesh(geometry, texMat);
+  scene.add(frontwall1);
+  frontwall1.position.x = -400;
+  frontwall1.position.y = 50;
+  frontwall1.position.z = -350;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(1.5, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(309.9, 100, 10);
+  var frontwall2 = new THREE.Mesh(geometry, texMat);
+  scene.add(frontwall2);
+  frontwall2.position.x = 350;
+  frontwall2.position.y = 50;
+  frontwall2.position.z = -350;
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(1, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(209.9, 100, 10);
+  var frontwall3 = new THREE.Mesh(geometry, texMat);
+  scene.add(frontwall3);
+  frontwall3.position.x = 0;
+  frontwall3.position.y = 50;
+  frontwall3.position.z = -350;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(1.5, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(300, 100, 10);
+  var leftbackwall = new THREE.Mesh(geometry, texMat);
+  scene.add(leftbackwall);
+  leftbackwall.position.x =  -350;
+  leftbackwall.position.y =  50;
+  leftbackwall.position.z = -950;
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(2, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(400, 100, 10);
+  var rightbackwall = new THREE.Mesh(geometry, texMat);
+  scene.add(rightbackwall);
+  rightbackwall.position.x =  300;
+  rightbackwall.position.y =  50;
+  rightbackwall.position.z = -950;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(3, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 600);
+  var rightwall = new THREE.Mesh(geometry, texMat);
+  scene.add(rightwall);
+  rightwall.position.x = 500;
+  rightwall.position.y = 50;
+  rightwall.position.z = -650;
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(0.5, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 100);
+  var frontleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(frontleftwall);
+  frontleftwall.position.x = -500;
+  frontleftwall.position.y = 50;
+  frontleftwall.position.z = -600;
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(0.25, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 60);
+  var middleleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(middleleftwall);
+  middleleftwall.position.x = -500;
+  middleleftwall.position.y = 50;
+  middleleftwall.position.z = -805;
+  
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(0.25, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 50);
+  var backleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(backleftwall);
+  backleftwall.position.x = -500;
+  backleftwall.position.y = 50;
+  backleftwall.position.z = -925;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(0.05, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.PlaneGeometry(10, 100);
+  var backleftwallh = new THREE.Mesh(geometry, texMat);
+  scene.add(backleftwallh);
+  backleftwallh.position.x = -500;
+  backleftwallh.position.y = 50;
+  backleftwallh.position.z = -899.9;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(0.05, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.PlaneGeometry(10, 100);
+  var middleleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(middleleftwall);
+  middleleftwall.position.x = -500;
+  middleleftwall.position.y = 50;
+  middleleftwall.position.z = -835.1;
+  middleleftwall.rotation.y = Math.PI;
+  
+  
+  
+  tables(-325,-800,0);
+  tables(-275,-800,0);
+  tables(-225,-800,0);
+  
+  tables(-125,-800,0);
+  tables(-75,-800,0);
+  tables(-25,-800,0);
+  
+  tables(75,-800,0);
+  tables(125,-800,0);
+  tables(175,-800,0);
+  
+  tables(-325,-650,0);
+  tables(-275,-650,0);
+  tables(-225,-650,0);
+  
+  tables(-125,-650,0);
+  tables(-75,-650,0);
+  tables(-25,-650,0);
+  
+  tables(75,-650,0);
+  tables(125,-650,0);
+  tables(175,-650,0);
+  
+  
+  tables(-275,-450,1);
+  tables(-275,-500,1);
+  tables(-275,-550,1);
+  
+  tables(-125,-500,0);
+  tables(-75,-500,0);
+  tables(-25,-500,0);
+  
+  tables(125,-450,1);
+  tables(125,-500,1);
+  tables(125,-550,1);
+
+  counter(350,-875);
+  restroom(400,-650);
+  storeroom(-435,-550);
+  
+  kitchen(-650,-950);
+  stage(-50,-969.9);
+}
+
+function stage(x,z){
+	texture = new THREE.TextureLoader().load('https://i.imgur.com/0swWBqB.jpg');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(6, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(200, 40, 40);
+  var stage1 = new THREE.Mesh(geometry, texMat);
+  scene.add(stage1);
+  stage1.position.x = x;
+  stage1.position.y = 20;
+  stage1.position.z = z;
+  
+  var geometry = new THREE.BoxGeometry(50, 10, 10);
+  var leftstage1 = new THREE.Mesh(geometry, texMat);
+  scene.add(leftstage1);
+  leftstage1.position.x = -125;
+  leftstage1.position.y = -15;
+  leftstage1.position.z = 15;
+  stage1.add(leftstage1);
+  var rightstage1 = new THREE.Mesh(geometry, texMat);
+  scene.add(rightstage1);
+  rightstage1.position.x = 125;
+  rightstage1.position.y = -15;
+  rightstage1.position.z = 15;
+  stage1.add(rightstage1);
+  
+  var geometry = new THREE.BoxGeometry(50, 10, 10);
+  var leftstage2 = new THREE.Mesh(geometry, texMat);
+  scene.add(leftstage2);
+  leftstage2.position.x = -125;
+  leftstage2.position.y = -5;
+  leftstage2.position.z = 5;
+  stage1.add(leftstage2);
+  var rightstage2 = new THREE.Mesh(geometry, texMat);
+  scene.add(rightstage2);
+  rightstage2.position.x = 125;
+  rightstage2.position.y = -5;
+  rightstage2.position.z = 5;
+  stage1.add(rightstage2);
+  
+  var geometry = new THREE.BoxGeometry(50, 10, 10);
+  var leftstage3 = new THREE.Mesh(geometry, texMat);
+  scene.add(leftstage3);
+  leftstage3.position.x = -125;
+  leftstage3.position.y = 5;
+  leftstage3.position.z = -5;
+  stage1.add(leftstage3);
+  var rightstage3 = new THREE.Mesh(geometry, texMat);
+  scene.add(rightstage3);
+  rightstage3.position.x = 125;
+  rightstage3.position.y = 5;
+  rightstage3.position.z = -5;
+  stage1.add(rightstage3);
+  
+  var geometry = new THREE.BoxGeometry(50, 10, 10);
+  var leftstage4 = new THREE.Mesh(geometry, texMat);
+  scene.add(leftstage4);
+  leftstage4.position.x = -125;
+  leftstage4.position.y = 15;
+  leftstage4.position.z = -15;
+  stage1.add(leftstage4);
+  var rightstage4 = new THREE.Mesh(geometry, texMat);
+  scene.add(rightstage4);
+  rightstage4.position.x = 125;
+  rightstage4.position.y = 15;
+  rightstage4.position.z = -15;
+  stage1.add(rightstage4);
+  
+  var geometry = new THREE.BoxGeometry(300, 40, 200);
+  var stageflat = new THREE.Mesh(geometry, texMat);
+  scene.add(stageflat);
+  stageflat.position.z = -120;
+  stage1.add(stageflat);
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/0swWBqB.jpg');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(6, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(300, 100, 10);
+  var backwall = new THREE.Mesh(geometry, texMat);
+  scene.add(backwall);
+  backwall.position.z = -220;
+  backwall.position.y = 30;
+  stage1.add(backwall);
+  
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 240);
+  var leftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(leftwall);
+  leftwall.position.z = -95;
+  leftwall.position.y = 30;
+  leftwall.position.x = -150;
+  stage1.add(leftwall);
+  
+  var rightwall = new THREE.Mesh(geometry, texMat);
+  scene.add(rightwall);
+  rightwall.position.z = -95;
+  rightwall.position.y = 30;
+  rightwall.position.x = 150;
+  stage1.add(rightwall);
+}
+
+function tables(x,z,R){
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/beiOFVd.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var texture2 = new THREE.TextureLoader().load('https://i.imgur.com/Wvoy1mm.jpg');
+
+  var texMat2 = new THREE.MeshPhongMaterial({
+    map: texture2
+  });
+  
+  var texture3 = new THREE.TextureLoader().load('https://i.imgur.com/I9NueiU.jpg');
+
+  var texMat3 = new THREE.MeshPhongMaterial({
+    map: texture3
+  });
+  
+  
+  var loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('');
+  tex = loader.load('https://i.imgur.com/beiOFVd.png');
+  alpha2 = loader.load('https://i.imgur.com/KKaGud6.png');
+	alpha = loader.load('https://i.imgur.com/gcqu2PW.png')
+  
+  
+  
+  
+
+	var geometry = new THREE.BoxGeometry(50, 3, 25);
+  var table = new THREE.Mesh(geometry, texMat);
+  scene.add(table);
+  table.position.y = 25;
+  
+  var table1 = new THREE.Mesh(new THREE.PlaneGeometry(50, 20), new THREE.MeshBasicMaterial({
+    map: tex,
+    alphaMap:alpha,
+    transparent: true,
+    side: THREE.DoubleSide
+  }));
+
+  scene.add(table1);
+  table.add(table1);
+  table1.position.z = 12.51;
+  table1.position.y = -8.5;  
+  
+  var table2 = new THREE.Mesh(new THREE.PlaneGeometry(50, 20), new THREE.MeshBasicMaterial({
+    map: tex,
+    alphaMap:alpha,
+    transparent: true,
+    side: THREE.DoubleSide
+  }));
+
+  scene.add(table2);
+  table.add(table2);
+  table2.position.z = -12.51;
+  table2.position.y = -8.5;  
+  
+  var table3 = new THREE.Mesh(new THREE.PlaneGeometry(25.02, 20), new THREE.MeshBasicMaterial({
+    map: tex,
+    alphaMap:alpha2,
+    transparent: true,
+    side: THREE.DoubleSide
+  }));
+
+  scene.add(table3);
+  table.add(table3);
+  table3.position.x = 25.01;
+  table3.position.y = -8.5;  
+  table3.rotation.y += Math.PI/2;
+  
+  
+  var table4 = new THREE.Mesh(new THREE.PlaneGeometry(25.02, 20), new THREE.MeshBasicMaterial({
+    map: tex,
+    alphaMap:alpha2,
+    transparent: true,
+    side: THREE.DoubleSide
+  }));
+
+  scene.add(table4);
+  table.add(table4);
+  table4.position.x = -25.01;
+  table4.position.y = -8.5;  
+  table4.rotation.y += Math.PI/2;
+
+  
+  
+  
+  var geometry = new THREE.CylinderGeometry( 3, 3, 25, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -12.5;
+  
+  table.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 3, 12, 4, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = - 22.5;
+  
+  table.add(cylinder);
+  
+  table.position.x = x;
+  table.position.z = z;
+  
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair1 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair1 );
+  chair1.position.z = -25;
+  chair1.position.x = -12.5;
+  chair1.position.y = -8;
+  table.add(chair1);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 20, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -10;
+  chair1.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -15.5;
+  chair1.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair2 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair2 );
+  chair2.position.z = -25;
+  chair2.position.x = 12.5;
+  chair2.position.y = -8;
+  table.add(chair2);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 20, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -10;
+  chair2.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -15.5;
+  chair2.add(cylinder);
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair3 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair3 );
+  chair3.position.z = 25;
+  chair3.position.x = -12.5;
+  chair3.position.y = -8;
+  table.add(chair3);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 20, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -10;
+  chair3.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -15.5;
+  chair3.add(cylinder);
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair4 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair4 );
+  chair4.position.z = 25;
+  chair4.position.x = 12.5;
+  chair4.position.y = -8;
+  table.add(chair4);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 20, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -10;
+  chair4.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -15.5;
+  chair4.add(cylinder);
+  
+  if(R == 1) table.rotation.y += Math.PI/2;
+}
+
+function counter(x,z){
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/O3szElw.jpg');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var texture2 = new THREE.TextureLoader().load('https://i.imgur.com/Wvoy1mm.jpg');
+
+  var texMat2 = new THREE.MeshPhongMaterial({
+    map: texture2
+  });
+  
+  var texture3 = new THREE.TextureLoader().load('https://i.imgur.com/I9NueiU.jpg');
+
+  var texMat3 = new THREE.MeshPhongMaterial({
+    map: texture3
+  });
+
+	var geometry = new THREE.BoxGeometry(15, 40, 150);
+  var counter = new THREE.Mesh(geometry, texMat);
+  scene.add(counter);
+  counter.position.x = x;
+  counter.position.z = z;
+  counter.position.y = 20;
+  
+  var geometry = new THREE.BoxGeometry(15, 5, 150);
+  var box = new THREE.Mesh(geometry, texMat);
+  scene.add(box);
+  counter.add(box);
+  box.position.x = 15;
+  box.position.y = 5;
+  
+  
+  var geometry = new THREE.BoxGeometry(130, 40, 15);
+  var box = new THREE.Mesh(geometry, texMat);
+  scene.add(box);
+  counter.add(box);
+  box.position.z = 82.5;
+  box.position.x = 57.5;
+  
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair1 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair1 );
+  chair1.position.z = -25;
+  chair1.position.x = 50;
+  chair1.position.y = -3;
+  counter.add(chair1);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 20, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -10;
+  chair1.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -15.5;
+  chair1.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair2 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair2 );
+  chair2.position.z = 25;
+  chair2.position.x = 50;
+  chair2.position.y = -3;
+  counter.add(chair2);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 20, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -10;
+  chair2.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -15.5;
+  chair2.add(cylinder);
+
+
+}
+
+function restroom(x,z){
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+	var geometry = new THREE.BoxGeometry(209.9, 100, 10);
+  var backwall = new THREE.Mesh(geometry, texMat);
+  scene.add(backwall);
+  backwall.position.y = 50;
+  backwall.position.x = x;
+  backwall.position.z = z;
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(0.5, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 109.9);
+  var fleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(fleftwall);
+  backwall.add(fleftwall);
+  fleftwall.position.x = -100;
+  fleftwall.position.z = 50;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 109.9);
+  var bleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(bleftwall);
+  backwall.add(bleftwall);
+  bleftwall.position.x = -100;
+  bleftwall.position.z = 250;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 109.9);
+  var ileftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(ileftwall);
+  backwall.add(ileftwall);
+  ileftwall.position.x = -50;
+  ileftwall.position.z = 150;
+  
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(0.05, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  
+  var geometry = new THREE.BoxGeometry(9.9, 100);
+  var fleftwallh = new THREE.Mesh(geometry, texMat);
+  scene.add(fleftwallh);
+  backwall.add(fleftwallh);
+  fleftwallh.position.x = -100;
+  fleftwallh.position.z = 104.5;
+  
+  var geometry = new THREE.BoxGeometry(9.9, 100);
+  var bleftwallh = new THREE.Mesh(geometry, texMat);
+  scene.add(bleftwallh);
+  backwall.add(bleftwallh);
+  bleftwallh.position.x = -100;
+  bleftwallh.position.z = 195.5;
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(0.15, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(40, 100);
+  var fdoorwall = new THREE.Mesh(geometry, texMat);
+  scene.add(fdoorwall);
+  backwall.add(fdoorwall);
+  fdoorwall.position.x = -75;
+  fdoorwall.position.z = 95.6;
+  
+  var geometry = new THREE.BoxGeometry(40, 100);
+  var fdoorwall = new THREE.Mesh(geometry, texMat);
+  scene.add(fdoorwall);
+  backwall.add(fdoorwall);
+  fdoorwall.position.x = -75;
+  fdoorwall.position.z = 203.6;
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/skdK9KX.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(40, 80);
+  var rdm = new THREE.Mesh(geometry, texMat);
+  scene.add(rdm);
+  backwall.add(rdm);
+  rdm.position.x = -75;
+  rdm.position.y = -10;
+  rdm.position.z = 203.3;
+  
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/MUaGcp3.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(40, 80);
+  var rdf = new THREE.Mesh(geometry, texMat);
+  scene.add(rdf);
+  backwall.add(rdf);
+  rdf.position.x = -75;
+  rdf.position.y = -10;
+  rdf.position.z = 96.08;
+  
+  
+  
+  makesink(280,-625);
+  makesink(280,-575);
+  
+  makesink(280,-430);
+  makesink(280,-380);
+  
+}
+
+function makesink(x,z){
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/FM8caZz.jpg');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(20, 25, 45 );
+  var sink = new THREE.Mesh(geometry, texMat);
+  scene.add(sink);
+  sink.position.x = x;
+  sink.position.y = 12.5;
+  sink.position.z = z;
+  
+  var geometry = new THREE.BoxGeometry(20, 30, 3 );
+  var box = new THREE.Mesh(geometry, texMat);
+  scene.add(box);
+  sink.add(box);
+  box.position.y = 2.5;
+  box.position.z = 24;
+  
+  var geometry = new THREE.BoxGeometry(20, 30, 3 );
+  var box = new THREE.Mesh(geometry, texMat);
+  scene.add(box);
+  sink.add(box);
+  box.position.y = 2.5;
+  box.position.z = -24;
+  
+  var geometry = new THREE.BoxGeometry(3, 30, 50 );
+  var box = new THREE.Mesh(geometry, texMat);
+  scene.add(box);
+  sink.add(box);
+  box.position.y = 2.49;
+  box.position.x = -8.51;
+  
+  var geometry = new THREE.BoxGeometry(8, 30, 50.9 );
+  var box = new THREE.Mesh(geometry, texMat);
+  scene.add(box);
+  sink.add(box);
+  box.position.y = 2.51;
+  box.position.x = 11.01;
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/KcLkzzZ.jpg');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  
+  var geometry = new THREE.TorusGeometry( 5, 1, 16, 100, 3.2 );
+	var torus = new THREE.Mesh( geometry, texMat );
+	scene.add( torus );
+  torus.position.y = 25;
+  torus.position.x = 5;
+  sink.add(torus);
+  
+  var geometry = new THREE.CylinderGeometry( 1, 1, 10, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat );
+	scene.add( cylinder );
+  cylinder.position.y = 20;
+  cylinder.position.x = 10;
+  sink.add(cylinder);
+}
+
+function storeroom(x,z){
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(0.7, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  
+	var geometry = new THREE.BoxGeometry(130, 100, 20);
+  var storewall = new THREE.Mesh(geometry, texMat);
+  scene.add(storewall);
+  storewall.position.y = 50;
+  storewall.position.x = x;
+  storewall.position.z = z;
+  
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 130);
+  var storewall2 = new THREE.Mesh(geometry, texMat);
+  scene.add(storewall2);
+  storewall.add(storewall2);
+  storewall2.position.x = 65;
+  storewall2.position.z = 135;
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(0.1, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 24.9);
+  var storewall3 = new THREE.Mesh(geometry, texMat);
+  scene.add(storewall3);
+  storewall.add(storewall3);
+  storewall3.position.x = 65;
+  storewall3.position.z = 2.5;
+  
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(1, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 200);
+  var leftstorewall = new THREE.Mesh(geometry, texMat);
+  scene.add(leftstorewall);
+  storewall.add(leftstorewall);
+  leftstorewall.position.x = -165;
+  leftstorewall.position.z = 100;
+  
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(0.1, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.PlaneGeometry(10, 100);
+  var storewall2h = new THREE.Mesh(geometry, texMat);
+  scene.add(storewall2h);
+  storewall2.add(storewall2h);
+  storewall2h.position.z = -65.1;
+  storewall2h.rotation.y += Math.PI;
+  
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/eNW4WXs.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(5, 100, 55);
+  var storedoor = new THREE.Mesh(geometry, texMat);
+  scene.add(storedoor);
+  storewall.add(storedoor);
+  storedoor.position.x = 40;
+  storedoor.position.z = 24.5;
+  storedoor.rotation.y -= 1.3;
+  
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/eNW4WXs.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(0.01, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.PlaneGeometry(5, 100);
+  var storedoorh = new THREE.Mesh(geometry, texMat);
+  scene.add(storedoorh);
+  storedoor.add(storedoorh);
+  storedoorh.position.z = 27.52;
+  
+  var geometry = new THREE.PlaneGeometry(5, 100);
+  var storedoorh2 = new THREE.Mesh(geometry, texMat);
+  scene.add(storedoorh2);
+  storedoor.add(storedoorh2);
+  storedoorh2.position.z = -27.52;
+  storedoorh2.rotation.y += Math.PI; 
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/mdXDao3.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+	
+  texture.repeat.set(3/5, 6/5);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+
+  
+  var geometry = new THREE.PlaneGeometry(110, 200);
+  var storefloor = new THREE.Mesh(geometry, texMat);
+  scene.add(storefloor);
+  storefloor.rotation.x = -Math.PI / 2;
+  storefloor.position.x = -105.1;
+  storefloor.position.y = -50;
+  storefloor.position.z = 100;
+  
+  storewall.add(storefloor);
+
+  storeroomtables(-400,-368);
+  storeroomtables(-450,-368);
+  
+}
+
+function storeroomtables(x,z){
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/beiOFVd.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var texture2 = new THREE.TextureLoader().load('https://i.imgur.com/Wvoy1mm.jpg');
+
+  var texMat2 = new THREE.MeshPhongMaterial({
+    map: texture2
+  });
+  
+  var texture3 = new THREE.TextureLoader().load('https://i.imgur.com/I9NueiU.jpg');
+
+  var texMat3 = new THREE.MeshPhongMaterial({
+    map: texture3
+  });
+  
+  
+  
+
+	var geometry = new THREE.BoxGeometry(50, 3, 25);
+  var table = new THREE.Mesh(geometry, texMat);
+  scene.add(table);
+  table.position.y = 25;
+  
+  
+  
+  var geometry = new THREE.CylinderGeometry( 3, 3, 25, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -12.5;
+  
+  table.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 3, 12, 4, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = - 23;
+  
+  table.add(cylinder);
+  
+  table.position.x = x;
+  table.position.z = z;
+  
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair1 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair1 );
+  chair1.position.z = -25;
+  chair1.position.x = -12.5;
+  chair1.position.y = -8;
+  table.add(chair1);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 15, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -7.5;
+  chair1.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -16;
+  chair1.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair2 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair2 );
+  chair2.position.z = -25;
+  chair2.position.x = 12.5;
+  chair2.position.y = -8;
+  table.add(chair2);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 15, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -7.5;
+  chair2.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -16;
+  chair2.add(cylinder);
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair3 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair3 );
+  chair3.position.z = -45;
+  chair3.position.x = -12.5;
+  chair3.position.y = -8;
+  table.add(chair3);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 15, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -7.5;
+  chair3.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -16;
+  chair3.add(cylinder);
+  
+  var geometry = new THREE.CylinderGeometry( 8, 8, 3, 32 );
+	var chair4 = new THREE.Mesh( geometry, texMat3 );
+	scene.add( chair4 );
+  chair4.position.z = -45;
+  chair4.position.x = 12.5;
+  chair4.position.y = -8;
+  table.add(chair4);
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 15, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -7.5;
+  chair4.add(cylinder);
+  
+  
+  var geometry = new THREE.CylinderGeometry( 1.5, 5, 2, 32 );
+	var cylinder = new THREE.Mesh( geometry, texMat2 );
+	scene.add( cylinder );
+  cylinder.position.y = -16;
+  chair4.add(cylinder);
+	
+}
+
+function kitchen(x,z){
+
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(1.5, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(300, 100, 10);
+  var backwall = new THREE.Mesh(geometry, texMat);
+  scene.add(backwall);
+  backwall.position.z = z;
+  backwall.position.y = 50;
+  backwall.position.x = x;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(1.5, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(300, 100, 20);
+  var frontwall = new THREE.Mesh(geometry, texMat);
+  scene.add(frontwall);
+  frontwall.position.z = 400;
+  backwall.add(frontwall);
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(1.5, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 300);
+  var frontleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(frontleftwall);
+  frontleftwall.position.z = 250;
+  frontleftwall.position.x = -150;
+  backwall.add(frontleftwall);
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/As3Bhdi.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(10, 60, 40);
+  var middleleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(middleleftwall);
+  middleleftwall.position.z = 80;
+  middleleftwall.position.y = -20;
+  middleleftwall.position.x = -150;
+  backwall.add(middleleftwall);
+  
+  
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/G634HPV.png');
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  texture.repeat.set(0.3, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 100, 60);
+  var backleftwall = new THREE.Mesh(geometry, texMat);
+  scene.add(backleftwall);
+  backleftwall.position.z = 30;
+  backleftwall.position.x = -150;
+  backwall.add(backleftwall);
+  
+  
+  
+  var texture = new THREE.TextureLoader().load('https://i.imgur.com/ZUWRF8R.jpg');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+	var geometry = new THREE.BoxGeometry(80, 2, 40);
+  var windows1 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows1);
+  windows1.position.y = 50;
+  windows1.position.z = 80;
+  windows1.position.x = -185;
+  backwall.add(windows1);
+  
+  var geometry = new THREE.BoxGeometry(80, 2, 40);
+  var windows2 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows2);
+  windows2.position.y = 10;
+  windows2.position.z = 80;
+  windows2.position.x = -185;
+  backwall.add(windows2);
+  
+  
+  var geometry = new THREE.BoxGeometry(80, 38, 2);
+  var windows3 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows3);
+  windows3.position.y = 30;
+  windows3.position.z = 61;
+  windows3.position.x = -185;
+  backwall.add(windows3);
+  
+  
+  var geometry = new THREE.BoxGeometry(80, 38, 2);
+  var windows4 = new THREE.Mesh(geometry, texMat);
+  scene.add(windows4);
+  windows4.position.y = 30;
+  windows4.position.z = 99;
+  windows4.position.x = -185;
+  backwall.add(windows4);
+  
+
+
+	texture = new THREE.TextureLoader().load('https://i.imgur.com/mdXDao3.png');
+
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+	
+  texture.repeat.set(9/5, 12/5);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+
+  
+  var geometry = new THREE.PlaneGeometry(300, 400);
+  var kitchenfloor = new THREE.Mesh(geometry, texMat);
+  scene.add(kitchenfloor);
+  backwall.add(kitchenfloor);
+  kitchenfloor.rotation.x = -Math.PI / 2;
+  kitchenfloor.position.y = -50;
+  kitchenfloor.position.z = 192;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/kPmETQG.png');
+
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  texture.repeat.set(0.625, 1);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  var geometry = new THREE.BoxGeometry(10, 42, 125);
+  var counter = new THREE.Mesh(geometry, texMat);
+  scene.add(counter);
+  counter.position.z = 237.5;
+  counter.position.y = -29.5;
+  counter.position.x = 150;
+  backwall.add(counter);
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/vDGQV3k.jpg');
+
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(20, 5, 125);
+  var counter2 = new THREE.Mesh(geometry, texMat);
+  scene.add(counter2);
+  counter2.position.z = 237.5;
+  counter2.position.y = -6;
+  counter2.position.x = 150;
+  backwall.add(counter2);
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/6rpZyxp.png');
+
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(10, 20, 125);
+  var counter3 = new THREE.Mesh(geometry, texMat);
+  scene.add(counter3);
+  counter3.position.z = 237.5;
+  counter3.position.y = 40;
+  counter3.position.x = 150;
+  backwall.add(counter3);
+  
+  
+  stove(-775,-760);
+  stove(-775,-680);
+  stove(-775,-600);
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/pzdqvl6.png');
+
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(40, 40, 5);
+  var vent = new THREE.Mesh(geometry, texMat);
+  scene.add(vent);
+  vent.position.z = 18.3;
+  vent.position.y = -32;
+  vent.position.x = -120;
+  backwall.add(vent);
+  vent.rotation.x = -0.6;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/jQtGxCr.png');
+
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.PlaneGeometry(5, 40);
+  var venth = new THREE.Mesh(geometry, texMat);
+  scene.add(venth);
+	venth.rotation.y = Math.PI/2;
+  venth.position.x = 20.1;
+  vent.add(venth);
+  
+  var venth2 = new THREE.Mesh(geometry, texMat);
+  scene.add(venth2);
+	venth2.rotation.y = -Math.PI/2;
+  venth2.position.x = -20.1;
+  vent.add(venth2);
+  
+  var geometry = new THREE.PlaneGeometry(40, 5);
+  var venth3 = new THREE.Mesh(geometry, texMat);
+  scene.add(venth3);
+	venth3.rotation.x = -Math.PI/2;
+  venth3.position.y = 20.1;
+  vent.add(venth3);
+  
+  var venth4 = new THREE.Mesh(geometry, texMat);
+  scene.add(venth4);
+	venth4.rotation.x = Math.PI/2;
+  venth4.position.y = -20.1;
+  vent.add(venth4);
+  
+  kitchentable(-620,-680);
+ 
+ }
+ 
+function stove(x,z){
+	texture = new THREE.TextureLoader().load('https://i.imgur.com/698O6a8.jpg');
+
+  texMat = new THREE.MeshLambertMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(40, 50, 80);
+  var stove = new THREE.Mesh(geometry, texMat);
+  scene.add(stove);
+  stove.position.z = z;
+  stove.position.y = 20;
+  stove.position.x = x;
+  stove.rotation.z = Math.PI/2;
+  
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/s8I2ouP.jpg');
+
+  texMat = new THREE.MeshLambertMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.PlaneGeometry(40, 50);
+  var stoveh = new THREE.Mesh(geometry, texMat);
+  scene.add(stoveh);
+  stoveh.position.z = 40.1;
+  stove.add(stoveh);
+  
+  var stoveh2 = new THREE.Mesh(geometry, texMat);
+  scene.add(stoveh2);
+  stoveh2.position.z = -40.1;
+  stoveh2.rotation.y = Math.PI;
+  stove.add(stoveh2);
+  
+  var geometry = new THREE.PlaneGeometry(40, 80);
+  var stoveh3 = new THREE.Mesh(geometry, texMat);
+  scene.add(stoveh3);
+  stoveh3.position.y = -25.1;
+	stoveh3.rotation.x = Math.PI/2;
+  stove.add(stoveh3);
+  
+  
+  var geometry = new THREE.BoxGeometry(50, 5, 80);
+  var rangehood = new THREE.Mesh(geometry, texMat);
+  scene.add(rangehood);
+  rangehood.position.x = 56;
+	rangehood.rotation.z = Math.PI/2;
+  stove.add(rangehood);
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/Wvoy1mm.jpg');
+
+  texMat = new THREE.MeshLambertMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.TorusBufferGeometry( 15, 8, 16, 100, 1.5 );
+	var rangehood2 = new THREE.Mesh( geometry, texMat );
+	scene.add( rangehood2 );
+  stove.add(rangehood2);
+  rangehood2.position.x = 56;
+  rangehood2.position.y = 25;
+  rangehood2.rotation.x = Math.PI;
+}
+
+function kitchentable(x,z){
+	texture = new THREE.TextureLoader().load('https://i.imgur.com/Wvoy1mm.jpg');
+
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  var geometry = new THREE.BoxGeometry(140, 5, 100);
+  var ktable = new THREE.Mesh(geometry, texMat);
+  scene.add(ktable);
+  ktable.rotation.y = Math.PI/2;
+	ktable.position.z = z;
+  ktable.position.x = x;
+  ktable.position.y = 40;
+  
+  texture = new THREE.TextureLoader().load('https://i.imgur.com/VuUCXhj.jpg');
+
+  texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+  
+  
+  var geometry = new THREE.BoxGeometry(8, 40, 8);
+  var ktable1 = new THREE.Mesh(geometry, texMat);
+  scene.add(ktable1);
+	ktable1.position.z = -40;
+  ktable1.position.x = 60;
+  ktable1.position.y = -20;
+  ktable.add(ktable1);
+  
+  var ktable2 = new THREE.Mesh(geometry, texMat);
+  scene.add(ktable2);
+	ktable2.position.z = 40;
+  ktable2.position.x = 60;
+  ktable2.position.y = -20;
+  ktable.add(ktable2);
+  
+  var ktable3 = new THREE.Mesh(geometry, texMat);
+  scene.add(ktable3);
+	ktable3.position.z = 40;
+  ktable3.position.x = -60;
+  ktable3.position.y = -20;
+  ktable.add(ktable3);
+  
+  var ktable4 = new THREE.Mesh(geometry, texMat);
+  scene.add(ktable4);
+	ktable4.position.z = -40;
+  ktable4.position.x = -60;
+  ktable4.position.y = -20;
+  ktable.add(ktable4);
+}
+ 
+
+function makeboxes(){
+	var texture = new THREE.TextureLoader().load('https://i.imgur.com/a8bRyAF.png');
+
+  var texMat = new THREE.MeshPhongMaterial({
+    map: texture
+  });
+
+  var geometry = new THREE.BoxGeometry(20,20,20);
+  
+  //////right side
+  
+  var box = new THREE.Mesh(geometry, texMat);
+  scene.add(box);
+  box.position.set(180,10,10);
+  box.rotation.y += 0.35;
+  var box2 = new THREE.Mesh(geometry, texMat);
+  scene.add(box2);
+  box2.position.set(175,10,-15);
+  box2.rotation.y -= 0.65;
+  var box3 = new THREE.Mesh(geometry, texMat);
+  scene.add(box3);
+  box3.position.set(183,30,-5);
+  box3.rotation.y -= 0.25;
+  
+  var box4 = new THREE.Mesh(geometry, texMat);
+  scene.add(box4);
+  box4.position.set(130,10,-95);
+  box4.rotation.y -= 0.25;
+  var box5 = new THREE.Mesh(geometry, texMat);
+  scene.add(box5);
+  box5.position.set(118,10,-70);
+  box5.rotation.y -= 0.75;
+  var box6 = new THREE.Mesh(geometry, texMat);
+  scene.add(box6);
+  box6.position.set(119,30,-83);
+  box6.rotation.y -= 0.55;
+  
+  
+  ////left side
+  
+  var box21 = new THREE.Mesh(geometry, texMat);
+  scene.add(box21);
+  box21.position.set(-180,10,10);
+  box21.rotation.y += 0.35;
+  var box22 = new THREE.Mesh(geometry, texMat);
+  scene.add(box22);
+  box22.position.set(-177,10,-15);
+  box22.rotation.y += 0.01;
+  var box23 = new THREE.Mesh(geometry, texMat);
+  scene.add(box23);
+  box23.position.set(-179,30,-17);
+  box23.rotation.y -= 0.35;
+  
+  
+  var box24 = new THREE.Mesh(geometry, texMat);
+  scene.add(box24);
+  box24.position.set(-118,10,-90);
+  box24.rotation.y += 0.35;
+  var box25 = new THREE.Mesh(geometry, texMat);
+  scene.add(box25);
+  box25.position.set(-118,30,-90);
+  box25.rotation.y -= 0.25;
+
+  
+}
+
+function readModel (modelName, targetSize = 40){
+    var onProgress = function(xhr){
+        if(xhr.lengthComputable){
+            var percentComplete = xhr.loaded / xhr.total * 100;
+            
+        }
+    }
+
+    var onError = function(xhr){};
+
+    var mtlLoader = new THREE.MTLLoader();
+    mtlLoader.setPath('models/');
+    mtlLoader.load(modelName+'.mtl', function(materials){
+        materials.preload();
+
+        var objLoader = new THREE.OBJLoader();
+        objLoader.setMaterials(materials);
+        objLoader.setPath('models/');
+        objLoader.load(modelName+'.obj',function(object){
+            let theObject = unitize(object, targetSize);
+            theObject.add(new THREE.BoxHelper(theObject))
+            theObject.name = 'OBJ'
+            car.add(theObject);
+        }, onProgress, onError);
+    });
+
+}
+
+function unitize(object, targetSize){
+    var box3 = new THREE.Box3();
+    box3.setFromObject(object);
+    var size = new THREE.Vector3();
+    size.subVectors(box3.max, box3.min);
+    var center = new THREE.Vector3();
+    center.addVectors(box3.max, box3.min).multiplyScalar(0.5);
+
+    var objSize = Math.max(size.x, size.y, size.z);
+    var scaleSet = targetSize/objSize;
+
+    var theObject = new THREE.Object3D();
+    theObject.add(object);
+    object.scale.set(scaleSet, scaleSet, scaleSet);
+    object.position.set(-center.x*scaleSet, -center.y*scaleSet, -center.z*scaleSet);
+
+    return theObject;
+}
+
+		
+
+        
+
+    </script>
+
+</body>

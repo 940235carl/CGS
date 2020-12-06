@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>three.js webaudio - orientation</title>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        #info {
+            position:absolute
+        }
+    </style>
+</head>
+<body>
+    <audio loop crossorigin="anonymous" id="walk" preload="auto" style="display: none">
+		<source src="No Party For Cao Dong [The Specter].mp3" type="audio/mpeg">
+    </audio>
+    <audio loop crossorigin="anonymous" id="sleep" preload="auto" style="display: none">
+		<source src="Deep_steps.ogg" type="audio/mpeg">
+    </audio>
+    <div id="overlay">
+		<button id="startButton">Play</button>
+    </div>
+    <div id="info" style="text-align: center;display: none;">
+        Click Pause stop/play music , adjust frequency to open oscillator
+        <br><button id="play" style="width: 100%;">Pause</button>
+            <!--<button id="change" style="width: 70%;display: none">change Oscillator</button>-->
+        <br>
+    </div>
+    <script src="https://raw.githack.com/jyunming-chen/tutsplus/master/js/KeyboardState.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script type="module">
+            var startButton = document.getElementById( 'startButton' );
+		    startButton.addEventListener( 'click', init );
+            import * as THREE from 'https://raw.githack.com/mrdoob/three.js/dev/build/three.module.js';
+
+            import { OrbitControls } from 'https://raw.githack.com/mrdoob/three.js/dev/examples/jsm/controls/OrbitControls.js';
+
+            import { PositionalAudioHelper } from 'https://raw.githack.com/mrdoob/three.js/dev/examples/jsm/helpers/PositionalAudioHelper.js';
+
+
+            var scene, camera, renderer,pos=0,thebox,sound,helper,envir,en,oscillator,sound2;
+            var keyboard = new KeyboardState();
+            var clock = new THREE.Clock();
+            var gcontrol;
+            var isPaused = true,isos = false;
+            var audioElement,audioElement2;
+
+            
+            $('#play').click ( function() {
+                isPaused=!isPaused;
+                if (isPaused) { 
+                    $('#play').text ('Play')
+                    audioElement.pause();
+                } else {
+                    $('#play').text ('Pause')
+                    audioElement.play();
+                }
+            });
+
+            function init(){
+
+
+            audioElement = document.getElementById('walk');
+            audioElement2 = document.getElementById('sleep');
+            document.getElementById("info").style.display='block';
+            audioElement.crossOrigin="anonymous";
+            audioElement.play();
+            var overlay = document.getElementById( 'overlay' );
+			overlay.remove();
+
+            camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 100 );
+            camera.position.set( -20, 3, 0 );
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color( 0xa0a0a0 );
+            //scene.fog = new THREE.Fog( 0xa0a0a0, 2, 20 );
+
+            var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 100, 100 ), new THREE.MeshBasicMaterial( { color: 0xa0a0a0, depthWrite: false } ) );
+            mesh.rotation.x = - Math.PI / 2;
+            mesh.receiveShadow = true;
+            scene.add( mesh );
+
+            var grid = new THREE.GridHelper( 50, 50, 0x888888, 0x888888 );
+            scene.add( grid );
+
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x888888);
+            document.body.appendChild( renderer.domElement );
+
+
+
+            var controls = new OrbitControls(camera, renderer.domElement );
+
+
+            
+            ////// create positionaudio
+            var listener = new THREE.AudioListener();
+            listener.crossOrigin = "anonymous";
+            camera.add(listener);
+
+            
+            sound = new THREE.PositionalAudio( listener );
+            sound.setMediaElementSource( audioElement );
+            sound.setRefDistance( 3 );
+            sound.panner.setOrientation(1,0,0);
+            envir=360;
+            en=200;
+            sound.setDirectionalCone( envir, en, 0.1 );
+
+            helper = new PositionalAudioHelper( sound, 5 );
+			sound.add(helper);
+            
+            var box = new THREE.BoxGeometry(2,1,5);
+            thebox = new THREE.Mesh(box,new THREE.MeshNormalMaterial());
+            thebox.rotation.y=Math.PI;
+  
+            thebox.add(sound);
+            sound.position.set(0,0,2.5);
+            thebox.position.set(-10,0,0);
+            scene.add(thebox);
+            thebox.rotation.y=2.5;
+
+
+            sound2 = new THREE.PositionalAudio( listener );
+            sound2.setMediaElementSource( audioElement2 );
+            sound2.setRefDistance( 3 );
+            sound2.panner.setOrientation(1,0,0);
+            envir=360;
+            en=200;
+            sound2.setDirectionalCone( envir, en, 0.1 );
+
+            helper = new PositionalAudioHelper( sound, 5 );
+			sound2.add(helper);
+
+            thebox.add(sound2);
+            ///////////////////  create Oscillator
+
+            var mesh3 = new THREE.Mesh( new THREE.BoxGeometry(2,2,2), new THREE.MeshNormalMaterial() );
+            mesh3.position.set( 0, 0, 0 );
+            scene.add( mesh3 );
+
+            var sound3 = new THREE.PositionalAudio( listener );
+            oscillator = listener.context.createOscillator();
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime( 0, sound3.context.currentTime );
+            oscillator.start( 0 );
+            sound3.setNodeSource( oscillator );
+            sound3.setRefDistance( 20 );
+            sound3.setVolume( 0.2 );
+			mesh3.add( sound3 );
+
+            ///////////////////   create dat gui
+            gcontrol = {
+                setRefDistance: 10,
+                innerangle: 180,
+                outerangle:225,
+                outergain:0.1
+            };
+
+            var control2 = {
+                frequency:0,
+                wavetype:'sawtooth'
+
+            };
+
+            var gui = new dat.GUI();
+            gui.domElement.id = 'gui';
+
+            gui.add(gcontrol, 'setRefDistance', 10.0, 30.0);
+            gui.add(gcontrol, 'innerangle', 0.0, 360.0);
+            gui.add(gcontrol, 'outerangle', 0.0, 360.0);
+            gui.add(gcontrol, 'outergain', 0.0, 1.0);
+            
+            var gui2 = new dat.GUI();
+            gui2.domElement.id ='gui';
+
+            gui2.add(control2,'frequency',0.0,300.0).onChange( function () {
+            oscillator.frequency.setValueAtTime( control2.frequency, sound3.context.currentTime );
+            });;
+            gui2.add(control2,'wavetype',['square','sawtooth','triangle','sine']).onChange( function () {
+            oscillator.type = control2.wavetype
+            });
+            animate();
+            }
+            
+            //////////////////////////////////  keyboard state
+            function update(dt) {
+                let angle=0.02;
+                keyboard.update();
+                if ( keyboard.pressed("A") ) 
+                     thebox.position.z-=0.1;            
+                if ( keyboard.pressed("D") )
+                    thebox.position.z+=0.1;             
+                if ( keyboard.pressed("W") )  
+                     thebox.position.x+=0.1;    
+                if ( keyboard.pressed("S") )  
+                     thebox.position.x-=0.1;
+                if ( keyboard.pressed("Q") )
+                     thebox.rotation.y+=angle;
+                if ( keyboard.pressed("E") )
+                     thebox.rotation.y-=angle;
+                if ( keyboard.pressed("F") ){
+                        audioElement2.play();
+                        audioElement.pause();
+                }
+               
+            }
+
+            function animate() {
+
+
+                var dt = clock.getDelta();
+                update(dt);
+
+                sound.setRefDistance( gcontrol.setRefDistance );
+                sound.setDirectionalCone( gcontrol.innerangle, gcontrol.outerangle, gcontrol.outergain );
+
+                helper.update();
+                requestAnimationFrame( animate );
+                renderer.render( scene, camera );
+
+            }
+
+    </script>
+    
+</body>
+</html>

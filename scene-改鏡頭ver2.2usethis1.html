@@ -1,0 +1,2918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #info {
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            padding: 10px;
+            text-align: center;
+            color: #ffff00
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/107/three.min.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/r16/Stats.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+    <script src="https://raw.githack.com/jyunming-chen/tutsplus/master/js/text2D.js"></script>
+
+	<script id="myVertexShader" type="x-shader/x-vertex">
+        uniform vec3 lightpos;  // world coordinate
+            varying vec4 eyepos;
+        
+        void main() {
+                eyepos = modelViewMatrix * vec4 (position, 1.0);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+    <script id="myFragmentShader" type="x-shader/x-fragment">
+        varying vec4 eyepos;
+        uniform float mytime;
+      
+       float rand(vec2 co){
+          return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+       }
+       void main() {
+            float grey = rand (vec2(eyepos.x+mytime, eyepos.y*mytime));
+            gl_FragColor = vec4(vec3(grey,grey,grey), 1.0);
+        }
+    </script>
+  
+    <audio id="doorsound" style="display: none;"> <source src="yisellsound.mp3" type="audio/mp3"> </audio>
+    <audio id="doorsound2" style="display: none"> <source src="refrigerater1_C.mp3" type="audio/mp3"> </audio>
+    <audio id="Vent" style="display: none"> <source src="Ventsound.mp3" type="audio/mp3"> </audio>
+    <audio id="lightsound" loop style="display: none"> <source src="lightsound2.mp3" type="audio/mp3"> </audio>
+    <audio id="lightsound2" loop style="display: none"> <source src="lightsound2.mp3" type="audio/mp3"> </audio>
+    <audio id="lightsound3" loop style="display: none"> <source src="lightsound2.mp3" type="audio/mp3"> </audio>
+    <audio id="change" style="display: none"> <source src="changesound.mp3" type="audio/mp3"> </audio>
+    <audio id="walk"  stytle="display: none"> <source src="walking_on_a_floor.mp3" type="audio/mp3"> </audio>
+    <audio id="windowwalk"  stytle="display: none"> <source src="Ventwalk1.ogg" type="audio/mp3"> </audio>
+    <audio id="exitsound"  stytle="display: none"> <source src="Deep_steps.ogg" type="audio/mp3"> </audio>
+    <audio id="Ennard"  stytle="display: none"> <source src="Ennard BOSS.mp3" type="audio/mp3"> </audio>
+    <audio id="jumpscare"  stytle="display: none"> <source src="Fnaf 6 jumpscare.mp3" type="audio/mp3"> </audio>
+    <audio id="death"  stytle="display: none"> </audio><source src="Static.ogg" type="audio/ogg"> </audio>
+    <audio id="laugh"  stytle="display: none"> <source src="Laugh_Giggle_Girl_1d.ogg" type="audio/ogg"> </audio>
+    <audio id="laugh2"  stytle="display: none"> <source src="Laugh_Giggle_Girl_2d.ogg" type="audio/ogg"> </audio>
+    <audio id="monitor"  stytle="display: none"> <source src="Blip3.ogg" type="audio/ogg"></audio>
+    <audio id="putmonitor"  stytle="display: none"> <source src="Put_down.ogg" type="audio/ogg"></audio>
+    <audio id="moviemove"  stytle="display: none"> <source src="MiniDV_Tape_Eject_1.ogg" type="audio/ogg"></audio>    
+    <audio id="shark"  stytle="display: none"> <source src="Windowscare.ogg" type="audio/ogg"></audio>
+
+    <script type='module'>
+        //import * as THREE from 'https://raw.githack.com/mrdoob/three.js/dev/build/three.module.js';
+        import { PositionalAudioHelper } from 'https://raw.githack.com/mrdoob/three.js/dev/examples/jsm/helpers/PositionalAudioHelper.js';
+
+        
+        var camera, scene, renderer, cameraHUD,sceneHUD,alpha,powertext,usagetext,timetext,tex,loader,helper;
+        var leftdoor,rightdoor,windowdoor;
+        var wallheight = 60 ,windowsize = 40;
+        var lightstate1 = 0, lightstate2 = 0, lightstate3 = 0; 
+        var light1, light2, light3, light11, light21;
+        var rightwallstate = 1, leftwallstate = 1, windowdoorstate = 1;
+        var mouse = new THREE.Vector2();
+        var raycaster = new THREE.Raycaster();
+        var rightlightpickables = [] , leftlightpickables = [] , rightdoorpickables = [] , leftdoorpickables = [], windowdoorpickables = [], windowlightpickables = [], camerapickables = [], rightmappickables = [], leftmappickables = [], startpickables = [];
+        var rotationy = 0 , viewpoint = 1;
+        var Time, usage = 1 ,power = 360;
+        var roomlight;
+        var quickswitch = 0 , switchflag = 0;
+        var test = new THREE.Vector3(0, 0, 0);
+        var breturndegree = new THREE.Vector3(0, 0, 0);
+        var returndegree = new THREE.Vector3(10, 0, 0);
+        var movingstep=1, block=1,mov=0, rdoor=false,ldoor=false,movcor=0,wdoor=false,gamestart = false,deadscene,jumprotate=0; // ghost moving variable
+        var tablet, tabletbody, fliptheta = 0,  pickup = 0;
+	    var hudmap, outcameraflag = 0, camerabuttom, starttext, startbuttom,buildMove;
+
+		var controls, stats, clock, ghost, gui, t = 0, t2 = 0, gControl, steps, keys = [], backkeys = [] ,intkey = [], backintkey = [], move;//鬼
+		var T = 0.7, T2= 0.7,ready = 0; 
+		var clock = new THREE.Clock();
+        var clock2 = new THREE.Clock();
+		var ts = clock.getElapsedTime(), ts2 = clock.getElapsedTime();
+        var thebox,sound,soundcheck=0,sound2;//soundbox
+		var on=0;
+        var meshMaterial,mesher,finish = 0,al=0;
+		var doorsound,doorsound2,ventsound,leftlightsound,leftlightsound,rightlightsound,windowlightsound,windowlightsound,walkssound,windowwalksound,exitsound,changesound,jumpscaresound,deathsound
+        var laughsound,laughsound2,monitorsound,putdownmonitor,monitormoving,checkscare,surroundings
+
+		var pose3={
+				
+				bodyRotate: 0.1317,
+                bodyHeight: 0.001,
+                bodyRotateY: 1.1191,
+				rightHandX: -0.7778,
+				rightHand2X: 0.001,
+                rightHandZ: -0.1492,
+				rightHand2Z: 0.001,
+                leftHandX: -0.7778,
+				leftHand2X: 0.001,
+                leftHandZ: 0.1492,
+				leftHand2Z: 0.001,
+                rightLegX: 0.001,
+				rightLeg2X: 0.001,
+                rightLegZ: 0.001,
+				rightLeg2Z: 0.001,
+                leftLegX: 0.001,
+				leftLeg2X: 0.001,
+                leftLegZ: 0.001,
+				leftLeg2Z: 0.001
+
+		}
+		
+		var pose4={
+				
+				bodyRotate: 0.2338,
+                bodyHeight: 0.001,
+                bodyRotateY: 1.1191,
+				rightHandX: -0.7778,
+				rightHand2X: 0.001,
+                rightHandZ: -0.2833,
+				rightHand2Z: 0.001,
+                leftHandX: -0.7778,
+				leftHand2X: 0.001,
+                leftHandZ: 0.2833,
+				leftHand2Z: 0.001,
+                rightLegX: 0.001,
+				rightLeg2X: 0.001,
+                rightLegZ: 0.001,
+				rightLeg2Z: 0.001,
+                leftLegX: 0.001,
+				leftLeg2X: 0.001,
+                leftLegZ: 0.001,
+				leftLeg2Z: 0.001
+
+		}
+		
+		var pose5={
+				
+				bodyRotate: 0.2879,
+                bodyHeight: 0.001,
+                bodyRotateY: 1.1191,
+				rightHandX: -0.7778,
+				rightHand2X: -0.5834,
+                rightHandZ: -0.5852,
+				rightHand2Z: 0.001,
+                leftHandX: -0.7778,
+				leftHand2X: -0.5834,
+                leftHandZ: 0.5852,
+				leftHand2Z: 0.001,
+                rightLegX: 0.001,
+				rightLeg2X: 0.001,
+                rightLegZ: 0.001,
+				rightLeg2Z: 0.001,
+                leftLegX: 0.001,
+				leftLeg2X: 0.001,
+                leftLegZ: 0.001,
+				leftLeg2Z: 0.001
+		
+		}
+		
+		var pose6={
+				
+				bodyRotate: 0.2879,
+                bodyHeight: 0.001,
+                bodyRotateY: 1.1191,
+				rightHandX: -1.1864,
+				rightHand2X: -0.5834,
+                rightHandZ: -0.5852,
+				rightHand2Z: 0.001,
+                leftHandX: -1.1864,
+				leftHand2X: -0.5834,
+                leftHandZ: 0.5852,
+				leftHand2Z: 0.001,
+                rightLegX: 0.001,
+				rightLeg2X: 0.001,
+                rightLegZ: 0.001,
+				rightLeg2Z: 0.001,
+                leftLegX: 0.001,
+				leftLeg2X: 0.001,
+                leftLegZ: 0.001,
+				leftLeg2Z: 0.001
+
+		}
+	
+		
+		var backpose3={
+				
+				backbodyRotate: -0.1317,
+                backbodyHeight: 0.001,
+                backbodyRotateY: 1.1191,
+				backrightHandX: -0.7778,
+				backrightHand2X: 0.001,
+                backrightHandZ: -0.1492,
+				backrightHand2Z: 0.001,
+                backleftHandX: -0.7778,
+				backleftHand2X: 0.001,
+                backleftHandZ: 0.1492,
+				backleftHand2Z: 0.001,
+                backrightLegX: 0.001,
+				backrightLeg2X: 0.001,
+                backrightLegZ: 0.001,
+				backrightLeg2Z: 0.001,
+                backleftLegX: 0.001,
+				backleftLeg2X: 0.001,
+                backleftLegZ: 0.001,
+				backleftLeg2Z: 0.001
+		
+		}
+		
+		var backpose4={
+				
+				backbodyRotate: -0.2338,
+                backbodyHeight: 0.001,
+                backbodyRotateY: 1.1191,
+				backrightHandX: -0.7778,
+				backrightHand2X: 0.001,
+                backrightHandZ: -0.2833,
+				backrightHand2Z: 0.001,
+                backleftHandX: -0.7778,
+				backleftHand2X: 0.001,
+                backleftHandZ: 0.2833,
+				backleftHand2Z: 0.001,
+                backrightLegX: 0.001,
+				backrightLeg2X: 0.001,
+                backrightLegZ: 0.001,
+				backrightLeg2Z: 0.001,
+                backleftLegX: 0.001,
+				backleftLeg2X: 0.001,
+                backleftLegZ: 0.001,
+				backleftLeg2Z: 0.001
+		
+		}
+		
+		var backpose5={
+				
+				backbodyRotate: -0.2879,
+                backbodyHeight: 0.001,
+                backbodyRotateY: 1.1191,
+				backrightHandX: -0.7778,
+				backrightHand2X: -0.5834,
+                backrightHandZ: -0.5852,
+				backrightHand2Z: 0.001,
+                backleftHandX: -0.7778,
+				backleftHand2X: -0.5834,
+                backleftHandZ: 0.5852,
+				backleftHand2Z: 0.001,
+                backrightLegX: 0.001,
+				backrightLeg2X: 0.001,
+                backrightLegZ: 0.001,
+				backrightLeg2Z: 0.001,
+                backleftLegX: 0.001,
+				backleftLeg2X: 0.001,
+                backleftLegZ: 0.001,
+				backleftLeg2Z: 0.001
+		}
+		
+		var backpose6={
+				
+				backbodyRotate: -0.2879,
+                backbodyHeight: 0.001,
+                backbodyRotateY: 1.1191,
+				backrightHandX: -1.1864,
+				backrightHand2X: -0.5834,
+                backrightHandZ: -0.5852,
+				backrightHand2Z: 0.001,
+                backleftHandX: -1.1864,
+				backleftHand2X: -0.5834,
+                backleftHandZ: 0.5852,
+				backleftHand2Z: 0.001,
+                backrightLegX: 0.001,
+				backrightLeg2X: 0.001,
+                backrightLegZ: 0.001,
+				backrightLeg2Z: 0.001,
+                backleftLegX: 0.001,
+				backleftLeg2X: 0.001,
+                backleftLegZ: 0.001,
+				backleftLeg2Z: 0.001
+		
+		}
+		
+		
+		
+		var keys = [
+			//[0.45, pose0],
+			//[0.65, pose1],
+			//[0.0, pose2],
+			[0.35, pose3],
+			[0.45, pose4],
+			[0.65, pose5],
+			[0.85, pose6],
+			[1, pose6]
+		];
+		
+		var backkeys = [
+			//[0.45, pose0],
+			//[0.65, pose1],
+			//[0.0, pose2],
+			[0.25, backpose3],
+			[0.45, backpose4],
+			[0.85, backpose6],
+			[1, backpose6]
+		];
+	
+        class Ghost{
+          constructor(gg) {
+                this.ghost = new THREE.Object3D();
+                
+				this.body = new THREE.Object3D();
+                this.body.position.set(0,35,0);
+                this.body.add(new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 30, 10),gg));
+
+                this.head = new THREE.Mesh(new THREE.SphereGeometry(15, 20, 15, 15, 22, 25, 22),gg);
+                this.head.position.set(0,15,0);
+
+                this.rightLeg = new THREE.Object3D();
+                this.rightLeg.position.set(-4.5,-16,0);
+
+                let rightLegMesh = new THREE.Mesh(new THREE.BoxGeometry(6,14,7),gg);
+                rightLegMesh.position.set(0,-5.0,0);
+                this.rightLeg.add(rightLegMesh);
+
+                this.time=0;
+                this.ghostin=0;
+                this.origin=0;
+			////////////////////////////////////////////////////
+				this.rightLeg2 = new THREE.Object3D();
+                this.rightLeg2.position.set(0,-10.0,0);
+
+                let rightLegMesh2 = new THREE.Mesh(new THREE.BoxGeometry(6,13,7),gg);
+                rightLegMesh2.position.set(0,-5.0,0);
+                this.rightLeg2.add(rightLegMesh2);
+
+                this.leftLeg = new THREE.Object3D();
+                this.leftLeg.position.set(4.5,-16,0);
+
+                let leftLegMesh = new THREE.Mesh(new THREE.BoxGeometry(6,14,7),gg);
+                leftLegMesh.position.set(0,-5.0,0);
+                this.leftLeg.add(leftLegMesh);
+			/////////////////////////////////////////////////////
+                this.leftLeg2 = new THREE.Object3D();
+                this.leftLeg2.position.set(0,-10.0,0);
+
+                let leftLegMesh2 = new THREE.Mesh(new THREE.BoxGeometry(6,13,7),gg);
+                leftLegMesh2.position.set(0,-5.0,0);
+                this.leftLeg2.add(leftLegMesh2);
+
+			    this.leftHand = new THREE.Object3D();
+                this.leftHand.position.set(12,5,0);
+
+                let leftHandMesh = new THREE.Mesh(new THREE.BoxGeometry(5,13,7),gg);
+                //leftHandMesh.position.set(0,0,0);
+                this.leftHand.add(leftHandMesh);
+			    /////////////////////////////////////////////////////
+				this.leftHand2 = new THREE.Object3D();
+                this.leftHand2.position.set(0,-6.5,0);
+
+                let leftHandMesh2 = new THREE.Mesh(new THREE.BoxGeometry(5,13,7),gg);
+                leftHandMesh2.position.set(0,-6.5,0);
+                this.leftHand2.add(leftHandMesh2);
+				
+				this.rightHand = new THREE.Object3D();
+                this.rightHand.position.set(-12,5,0);
+
+                let rightHandMesh = new THREE.Mesh(new THREE.BoxGeometry(5,13,7),gg);
+                //rightHandMesh.position.set(0,0,0);
+                this.rightHand.add(rightHandMesh);
+				//////////////////////////////////////////////////
+				this.rightHand2 = new THREE.Object3D();
+                this.rightHand2.position.set(0,-6.5,0);
+
+                let rightHandMesh2 = new THREE.Mesh(new THREE.BoxGeometry(5,13,7),gg);
+                rightHandMesh2.position.set(0,-6.5,0);
+                this.rightHand2.add(rightHandMesh2);
+
+                this.body.add(this.head, this.rightLeg,this.rightLeg2, this.leftLeg,this.leftLeg2, this.leftHand,this.leftHand2, this.rightHand,this.rightHand2);
+                this.leftHand.add(this.leftHand2);
+				this.rightHand.add(this.rightHand2);
+				this.leftLeg.add(this.leftLeg2);
+				this.rightLeg.add(this.rightLeg2);
+				this.ghost.add(this.body);
+
+
+                scene.add(this.ghost);
+            }
+			
+		}
+		
+		
+		
+        init();
+        animate();
+        
+        function init() {
+            
+			scene = new THREE.Scene();
+            clock = new THREE.Clock();
+            stats = new Stats();
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.top = '0px';
+            stats.domElement.style.zIndex = 100;
+            document.body.appendChild(stats.domElement);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x888888);
+            document.body.appendChild(renderer.domElement);
+
+            camera = new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,1,5000);
+            camera.position.set(0,150,250);
+
+
+            //controls = new THREE.OrbitControls(camera, renderer.domElement);
+            //controls.enableKeys = false;
+
+            var mesh = new THREE.MeshPhongMaterial({color:'red'}); 
+
+            ghost = new Ghost(mesh);
+            
+			ghost.ghost.rotation.order = 'ZXY';
+			
+            ghost.ghost.position.set(-145,0,-45);
+            buildMove = function(){
+                this.bodyRotate = 0.001;
+                this.bodyHeight = 0.001;
+                this.bodyRotateY= 0.001 ;
+                
+				this.rightHandX = 0.001;
+                this.rightHandZ = 0.001;
+				//////////////////////////
+				this.rightHand2X = 0.001;
+                this.rightHand2Z = 0.001;
+                
+				this.leftHandX = 0.001;
+                this.leftHandZ = 0.001;
+                //////////////////////////
+				this.leftHand2X = 0.001;
+                this.leftHand2Z = 0.001;
+				
+				this.rightLegX = 0.001;
+                this.rightLegZ = 0.001;
+				//////////////////////////
+				this.rightLeg2X = 0.001;
+                this.rightLeg2Z = 0.001;
+                
+				this.leftLegX = 0.001;
+                this.leftLegZ = 0.001;
+				//////////////////////////
+				this.leftLeg2X = 0.001;
+                this.leftLeg2Z = 0.001;
+				
+				
+            };
+			
+			
+            /*
+            gControl = new buildMove();
+            move = new buildMove();
+
+            gui = new dat.GUI({load: loadJSON(), preset: 'Default'});
+            gui.remember(gControl);
+            gui.add(gControl,'bodyRotate',-Math.PI / 2,Math.PI / 2);
+            gui.add(gControl,'bodyHeight',0.0,25.0);
+            gui.add(gControl,'bodyRotateY',-Math.PI / 2,Math.PI / 2);
+            
+			
+			gui.add(gControl,'rightHandX',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'rightHandZ',-Math.PI * 2 / 3,1);
+			///////////////////////////////////////////////////////////
+			gui.add(gControl,'rightHand2X',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'rightHand2Z',-Math.PI * 2 / 3,1);
+            
+			gui.add(gControl,'leftHandX',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'leftHandZ',0,Math.PI * 2 / 3);
+			///////////////////////////////////////////////////////////
+			gui.add(gControl,'leftHand2X',-Math.PI / 2,Math.PI / 2);
+            gui.add(gControl,'leftHand2Z',-Math.PI / 4,Math.PI / 4);
+            
+			gui.add(gControl,'rightLegX',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'rightLegZ',-Math.PI * 2 / 3,1);
+			///////////////////////////////////////////////////////////
+			gui.add(gControl,'rightLeg2X',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'rightLeg2Z',-Math.PI * 2 / 3,1);
+            
+			gui.add(gControl,'leftLegX',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'leftLegZ',0,Math.PI * 2 / 3);
+			///////////////////////////////////////////////////////////
+			gui.add(gControl,'leftLeg2X',-Math.PI / 2,Math.PI / 2);
+            gui.add(gControl,'leftLeg2Z',-Math.PI / 4,Math.PI / 4);
+
+            let step = loadJSON();
+            steps = [step.remembered.Step0["0"],step.remembered.Step1["0"],step.remembered.Step2["0"],
+                step.remembered.Step3["0"],step.remembered.Step4["0"],step.remembered.Step5["0"],step.remembered.Step6["0"]];
+            */
+        ///////////////////////////////////////////////////////////////////  Get sound Resource
+		
+		doorsound = document.getElementById("doorsound");
+        doorsound2 = document.getElementById("doorsound2");
+        ventsound = document.getElementById("Vent");
+        leftlightsound = document.getElementById("lightsound");
+        leftlightsound.volume = 0.5;
+        rightlightsound = document.getElementById("lightsound2");
+        rightlightsound.volume = 0.5;
+        windowlightsound = document.getElementById("lightsound3");
+        windowlightsound.volume = 0.5;
+        walkssound = document.getElementById("walk");
+        windowwalksound = document.getElementById("windowwalk");
+        exitsound = document.getElementById("exitsound");
+        changesound = document.getElementById("change");
+        jumpscaresound = document.getElementById("jumpscare");
+        deathsound = document.getElementById('death');
+        laughsound = document.getElementById('laugh');
+        laughsound.volume = 0.3;
+        laughsound2 = document.getElementById('laugh2');
+        laughsound2.volume = 0.3;
+        monitorsound = document.getElementById('monitor');
+        putdownmonitor = document.getElementById('putmonitor');
+        monitormoving = document.getElementById('moviemove');
+        checkscare = document.getElementById('shark');
+        /////////////////////////////////////// 背景
+        surroundings = document.getElementById("Ennard");
+        surroundings.volume = 0.6;
+        
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.z = 10;
+        camera.position.y = 40;
+        
+        cameraHUD = new THREE.OrthographicCamera(-10, 10, 10, -10, -10, 1600);
+        cameraHUD.position.z = 1580;
+        
+        sceneHUD = new THREE.Scene();
+        //camera.lookAt(0,200,-100);
+        //////////////////OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOrbit here////////////////////////////////////
+        //let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        ////////////////////////////////////////////////////////////////
+        //var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+        //scene.add(gridXZ);
+        
+        
+        ///////////////////////////////////////////////////////  floor
+        let loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        texture = loader.load('https://i.imgur.com/DrvlmNW.jpg');
+        alpha = loader.load('https://i.imgur.com/pYpcBHY.png');
+        var texMat = new THREE.MeshPhongMaterial({
+            map: texture,
+            //alphaMap: alpha,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        
+        
+        var geometry = new THREE.PlaneGeometry( 205, 205, 32 );
+            var plane = new THREE.Mesh( geometry, texMat );
+            scene.add( plane );
+        plane.rotation.x = Math.PI/2;
+
+        /////////////////////////////////////////   light
+        roomlight = new THREE.PointLight(0xffffff, 1 , 140);
+        roomlight.position.set(0, 50, 0);
+        scene.add(roomlight);
+        /////right light
+        light1 = new THREE.PointLight(0xffffff, 1 , 1);
+        light1.position.set(150, 50, -20);
+        scene.add(light1);
+        
+        light11 = new THREE.PointLight(0xffffff, 1 , 1);
+        light11.position.set(145, 50, -120);
+        scene.add(light11);
+        /////left light
+        light2 = new THREE.PointLight(0xffffff, 1 , 1);
+        light2.position.set(-150, 50, -20);
+        scene.add(light2);
+        
+        light21 = new THREE.PointLight(0xffffff, 1 , 1);
+        light21.position.set(-145, 50, -120);
+        scene.add(light21);
+
+        /////window light
+        light3 = new THREE.PointLight(0xffffff, 1 , 1);
+        light3.position.set(0, wallheight + windowsize/2 + windowsize/2 - 6 , 100 + 25/2 + 5);
+        scene.add(light3);
+        
+        /////////////////////////////////////////////////////////////////
+        /*var testlight = new THREE.PointLight(0xffffff, 1 , 2000);
+        testlight.position.set(0, 50, 200);
+        scene.add(testlight);*/
+        
+        
+        var geometry = new THREE.BoxGeometry(200, wallheight , 5);
+        var texture = new THREE.TextureLoader().load('https://i.imgur.com/iU1gtzm.png');
+        
+        var texMat = new THREE.MeshPhongMaterial({
+        map: texture
+        });
+        var initwall1 = new THREE.Mesh(geometry, texMat);
+        scene.add(initwall1);
+        initwall1.position.set(0, wallheight / 2 , 100);
+        var texture = new THREE.TextureLoader().load('https://i.imgur.com/L6OkHzh.png');
+        
+        var texMat = new THREE.MeshPhongMaterial({
+        map: texture
+        });
+        
+        var initwall2 = new THREE.Mesh(geometry, texMat);
+        scene.add(initwall2);
+        initwall2.position.set(0, wallheight / 2 - 10, -100);
+
+        // set door size
+        var doorsize = 30;
+        makewall(doorsize,wallheight);
+        openrightdoor();
+        openleftdoor();
+        
+        var tablesize = 5;
+        // set table size     two constant to set position
+        maketable(tablesize , 0, -40);
+        
+        ///var windowsize = 40;
+        makewindow(wallheight, windowsize);
+        openwindowdoor();
+        
+        makebuttoms(wallheight,doorsize);
+        
+        ////view point
+        document.addEventListener('mousemove', onDocumentMouseMove, false);
+        //set camera to look front
+        camera.lookAt(0,40,-100);
+        
+
+        ///////////////////////////OOOOOOOOOOOOOOOOOOOOOO IT'S HUD
+
+        makehud();
+        
+	
+        /////outside
+        makeoutside();
+        
+        /////camera change
+        makecamerabuttom();
+
+
+        ////new add////////////
+        maketablet();
+        
+        makeboxes();
+
+        makehudmap();
+
+        makemapbuttom();
+
+        ////////////////////
+        originscene();
+
+
+        Time = new THREE.Clock();
+        
+        
+        renderer.autoClear = false;
+        
+        document.addEventListener("keydown", onDocumentKeyDown, false);
+	    window.addEventListener('resize',onWindowResize, false);
+        ////////////////////// create listener
+        var listener = new THREE.AudioListener();
+        listener.crossOrigin = "anonymous";
+        camera.add(listener);
+
+
+        ///////////////////// set positionalaudio
+
+        sound = new THREE.PositionalAudio( listener );
+        sound.setMediaElementSource( walkssound );
+        sound.setRefDistance( 50 );
+        sound.panner.setOrientation(1,0,0);
+        var envir=360;
+        sound.setDirectionalCone( 180, 200, 0.1 );
+      
+        var box = new THREE.BoxGeometry(2,1,5);
+        thebox = new THREE.Mesh(box,new THREE.MeshNormalMaterial());
+        thebox.add(sound);
+        scene.add(thebox);
+        ghost.body.add(thebox);
+        
+        helper = new PositionalAudioHelper( sound, 5 );
+		sound.add(helper);
+
+        //////////////////////////////////////// White noise
+        meshMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            lightpos: {type: 'v3', value: new THREE.Vector3()},
+            mytime: {type:'f', value: 1.0}
+        },
+        vertexShader: document.getElementById('myVertexShader').textContent,
+        fragmentShader: document.getElementById('myFragmentShader').textContent
+        });
+
+
+        var geometry = new THREE.PlaneGeometry (100,100);
+        mesher = new THREE.Mesh(geometry, meshMaterial);   
+        /////////////////////////////// surrounding sound
+        surroundings.play();
+
+
+        }
+        /////////////////////////////////
+        function originscene(){
+            sceneHUD.remove(deadscene);
+            sceneHUD.remove(mesher);
+            viewpointchange();
+            outcamerarotation();
+            lightstate1 = 1;
+            usagetext.position.set(100,0,0);
+            timetext.position.set(100,0,0);
+            powertext.position.set(100,0,0);
+            camerabuttom.position.set(100, -7.5, 100);
+            usage = 0;
+            movingstep=1;
+            jumprotate=0;
+            roomlight.distance=140;
+            var Text2D = THREE_Text.MeshText2D;
+            var textAlign = THREE_Text.textAlign;
+            
+            starttext = new Text2D("Five Night of 學分", {
+                align: textAlign.center,
+                font: '144px Arial',
+                fillStyle: '#ffffff',
+                antialias: false
+            });
+            starttext.position.set(0, 5, 100);
+            starttext.scale.set(0.010, 0.014, 0.014);
+            sceneHUD.add(starttext);
+
+
+            loader = new THREE.TextureLoader();
+            loader.setCrossOrigin('');
+            tex = loader.load('https://i.imgur.com/beiOFVd.png');
+            alpha = loader.load('https://i.imgur.com/KAny90g.png')
+            startbuttom = new THREE.Mesh(new THREE.PlaneGeometry(5, 3), new THREE.MeshBasicMaterial({
+                map: tex,
+                alphaMap:alpha,
+                transparent: true,
+                side: THREE.DoubleSide
+            }));
+            
+            sceneHUD.add(startbuttom);
+            startbuttom.position.set(0,-4,100);
+            startpickables.push(startbuttom);
+            
+            document.addEventListener('mousedown', startgame, false);
+        }
+
+        /////////////////////////////////  ghost moving function
+
+        function moves(){
+            if(ghost.origin==0&&(viewpoint==2||viewpoint==0)){
+                openwhitenoise();
+                setTimeout(closewhitenoise,2000);
+                ghost.origin++;
+            }
+            soundcheck = 0;
+            if(movingstep==2&&movcor==0) setTimeout(moves,1000);
+            var test = Math.floor(Math.random()*100+1);
+            if(ghost.mov==1){
+                if(test>0&&test<10){
+                    thebox.rotation.y=2;
+                    walksound();
+                    ghost.ghost.position.set(-145,0,-45);
+                    movcor=1;
+					
+                    if(viewpoint==0){
+                        openwhitenoise();
+                        setTimeout(closewhitenoise,2000);
+                    }
+
+                    ghost.ghost.rotation.x  = 0.336;
+                    ghost.ghost.position.y  = 1;
+                    ghost.ghost.rotation.y  = 2;
+
+                    ghost.leftLeg.rotation.x  = 0.001;
+                    ghost.leftLeg.rotation.z  = 0.001;
+                    ///////////////////////////////////////////////
+                    ghost.leftLeg2.rotation.x  = 0.2338;
+                    ghost.leftLeg2.rotation.z  = 0.001;
+                
+                    ghost.rightLeg.rotation.x  = -0.5962;
+                    ghost.rightLeg.rotation.z  = -0.3169;
+                    ///////////////////////////////////////////////
+                    ghost.rightLeg2.rotation.x  = 0.7658;
+                    ghost.rightLeg2.rotation.z  = -0.0486;
+                
+                    ghost.leftHand.rotation.x  = -0.1876;
+                    ghost.leftHand.rotation.z  = 0.8172;
+                    ///////////////////////////////////////////////
+                    ghost.leftHand2.rotation.x  = 0.001;
+                    ghost.leftHand2.rotation.z  = 0.001;
+                
+                    ghost.rightHand.rotation.x  = -0.2784;
+                    ghost.rightHand.rotation.z  = -0.9206;
+                    ////////////////////////////////////////////////
+                    ghost.rightHand2.rotation.x  = -0.687;
+                    ghost.rightHand2.rotation.z  = 0.001;
+                    setTimeout(walksound,1000);
+                    setTimeout(closecheck,0);
+                    soundcheck=1;
+                }
+                else console.log('fail');
+            }
+            else if(ghost.mov==2){
+                if(test>0&&test<10){
+                    thebox.rotation.y=-2;
+                    walksound();
+                    ghost.ghost.position.set(145,0,-45);
+                    movcor=1;
+					if(viewpoint==2){
+                        openwhitenoise();
+                        setTimeout(closewhitenoise,2000);
+                    }
+                    ghost.ghost.rotation.x = 0.37;
+                    ghost.ghost.position.y = 0;
+                    ghost.ghost.rotation.y = -2;
+
+                    ghost.leftLeg.rotation.x = -0.687;
+                    ghost.leftLeg.rotation.z = 0.4086;
+                    ///////////////////////////////////////////////
+                    ghost.leftLeg2.rotation.x = 0.7204;
+                    ghost.leftLeg2.rotation.z = 0;
+                
+                    ghost.rightLeg.rotation.x = -0.7324;
+                    ghost.rightLeg.rotation.z = -0.0486;
+                    ///////////////////////////////////////////////
+                    ghost.rightLeg2.rotation.x = 0.7658;
+                    ghost.rightLeg2.rotation.z = 0.001;
+                
+                    ghost.leftHand.rotation.x = -0.1423;
+                    ghost.leftHand.rotation.z = 0.6356;
+                    ///////////////////////////////////////////////
+                    ghost.leftHand2.rotation.x = -1.1864;
+                    ghost.leftHand2.rotation.z = 0;
+                
+                    ghost.rightHand.rotation.x = -0.3692;
+                    ghost.rightHand.rotation.z = -0.7864;
+                    ////////////////////////////////////////////////
+                    ghost.rightHand2.rotation.x = -0.8558;
+                    ghost.rightHand2.rotation.z = -0.0821;
+                    
+					setTimeout(walksound,1000);
+                    setTimeout(closecheck,0);
+                    soundcheck=1;
+				}
+                else console.log('fail');               
+            }
+            else{
+                if(test>0&&test<10){
+                    windowwalk();
+                    thebox.rotation.y=0;
+					ghost.body.position.set(0,70,0);
+					ghost.ghost.position.set(0, 0, 160);
+					movcor=1;
+					
+					ghost.ghost.rotation.x = 0.001;
+                    ghost.ghost.position.y = 0.001;
+                    ghost.ghost.rotation.y = 0.001;
+
+                    ghost.leftLeg.rotation.x = 0.001;
+                    ghost.leftLeg.rotation.z = 0.001;
+                    ///////////////////////////////////////////////
+                    ghost.leftLeg2.rotation.x = 0.001;
+                    ghost.leftLeg2.rotation.z = 0.001;
+                
+                    ghost.rightLeg.rotation.x = 0.001;
+                    ghost.rightLeg.rotation.z = 0.001;
+                    ///////////////////////////////////////////////
+                    ghost.rightLeg2.rotation.x = 0.001;
+                    ghost.rightLeg2.rotation.z = 0.001;
+                
+                    ghost.leftHand.rotation.x = 0.001;
+                    ghost.leftHand.rotation.z = 0.001;
+                    ///////////////////////////////////////////////
+                    ghost.leftHand2.rotation.x = 0.001;
+                    ghost.leftHand2.rotation.z = 0.001;
+                
+                    ghost.rightHand.rotation.x = 0.001;
+                    ghost.rightHand.rotation.z = 0.001;
+                    ////////////////////////////////////////////////
+                    ghost.rightHand2.rotation.x = 0.001;
+                    ghost.rightHand2.rotation.z = 0.001;
+
+					
+					setTimeout(windowwalkstop,2000);
+                    setTimeout(closecheck,0);
+                }
+                else console.log('fail');
+            }
+        }
+
+        ///////////////////////////////  walksound play()
+        function walksound(){
+            walkssound.play();
+        }
+
+        function windowwalk(){
+            windowwalksound.play();
+        }
+        function windowwalkstop(){
+            windowwalksound.pause();
+        }
+        function ghostexit(){
+            exitsound.play();
+        }       
+        function ghostexitstop(){
+            exitsound.pause();
+        }
+
+        ///////////////////////////////////////// 偵測關門
+
+        function closecheck(){
+            if(ghost.time==5){
+                movingstep=1;
+                block=1;
+                ghost.time=0;
+                ghost.ghostin=0;
+                if(ghost.mov==3){
+                    windowwalk();
+                    setTimeout(windowwalkstop,2000);
+                }
+                else{
+                    ghostexit();
+                    setTimeout(ghostexitstop,2000);
+                }
+                if(viewpoint==0||viewpoint==2){
+                    openwhitenoise();
+                    setTimeout(closewhitenoise,2000);
+                }
+                clearTimeout(closecheck);
+            }   
+            else if(ghost.ghostin>13){
+                on=1;
+				movingstep=3;
+                block=1;
+                ghost.time=0;
+                var checkpoint = new THREE.Vector3(0,0,0);
+                camera.getWorldDirection(checkpoint);
+                console.log(checkpoint.x,checkpoint.z);
+                if(ghost.mov==1 &&checkpoint.x<-0.7599295200492424 &&checkpoint.z>-0.6500054804059181|| ghost.mov==2&&checkpoint.x>0.7447445969389143 &&checkpoint.z>-0.6673495975351258||(ghost.mov==3&&checkpoint.x<0.007&&checkpoint.z>0.98||ghost.mov==3&&checkpoint.x>-0.15&&checkpoint.z>0.98)){
+                    jumpscare();
+                    clearTimeout(closecheck);
+                }
+                else setTimeout(closecheck,0);
+            }
+            else{
+                if(ghost.mov==1&&ldoor||ghost.mov==2&&rdoor||ghost.mov==3&&wdoor){
+                    ghost.time+=1;
+                    setTimeout(closecheck,1000);
+                }
+                else{
+                    ghost.ghostin+=1;
+                    setTimeout(closecheck,1000);
+                }
+            }
+            //console.log(ghost.ghostin);
+
+        }
+
+
+        ///////////////////////////////////// jumpscare
+        function jumpscare(){
+            roomlight.distance=100.0;
+            jumpscaresound.play();
+			var pos = camera.localToWorld(new THREE.Vector4(0,0,-60,0));
+            ghost.ghost.position.set(pos.x,pos.y,pos.z);	
+            ready=1;
+            jumprotate=1;
+		}
+
+        //////////////////////////////////////// change scenes
+
+
+        function openwhitenoise(){
+            sceneHUD.add(mesher);
+            if(movingstep==3) mesher.position.z=300;
+            else mesher.position.z=100;
+            deathsound.play();
+        }
+
+        function closewhitenoise(){
+            sceneHUD.remove(mesher);
+            deathsound.pause();
+        }
+
+        //////////////////////////////////////////// animate
+        ////////////////////////////////////////////
+        ////////////////////////////////////////////
+
+
+        function animate() {
+		
+		stats.update();
+			
+		if(viewpoint==1) closewhitenoise();
+        //////////////////////////////////////////////////// set origin position
+        if(gamestart){
+            if(movingstep==1&&block==1){
+                if(ghost.body.position.y==70) {ghost.body.position.y=35;}
+                var ran = Math.floor(Math.random()*3+1);
+                if(ran == 1){
+                    ghost.ghost.position.set(-145,0,-125);
+                    ghost.mov=1;
+                    
+                    ghost.ghost.rotation.x = 0.37;
+                    ghost.ghost.position.y = 1.8967;
+                    ghost.ghost.rotation.y = 0;
+
+                    ghost.leftLeg.rotation.x = -0.0968;
+                    ghost.leftLeg.rotation.z = 0.0227;
+                    ///////////////////////////////////////////////
+                    ghost.leftLeg2.rotation.x = 0.7446;
+                    ghost.leftLeg2.rotation.z = 0.001;
+                
+                    ghost.rightLeg.rotation.x = -0.8232;
+                    ghost.rightLeg.rotation.z = -0.2498;
+                    ///////////////////////////////////////////////
+                    ghost.rightLeg2.rotation.x = 0.7204;
+                    ghost.rightLeg2.rotation.z = 0.052;
+                
+                    ghost.leftHand.rotation.x = -0.3692;
+                    ghost.leftHand.rotation.z = 1.0442;
+                    ///////////////////////////////////////////////
+                    ghost.leftHand2.rotation.x = -1.1622;
+                    ghost.leftHand2.rotation.z = 0.0658;
+                
+                    ghost.rightHand.rotation.x = -0.5054;
+                    ghost.rightHand.rotation.z = -1.0883;
+                    ////////////////////////////////////////////////
+                    ghost.rightHand2.rotation.x = -1.0048;
+                    ghost.rightHand2.rotation.z = 0.052;
+                
+                }
+                else if(ran == 2){
+                    
+                    ghost.ghost.position.set(145,0,-125);
+                    ghost.mov=2;
+                    
+                    
+                    ghost.ghost.rotation.x = 0.37;
+                    ghost.ghost.position.y = 1.8967;
+                    ghost.ghost.rotation.y = 0;
+
+                    ghost.leftLeg.rotation.x = -0.1422;
+                    ghost.leftLeg.rotation.z = 0.0227;
+                    ///////////////////////////////////////////////
+                    ghost.leftLeg2.rotation.x = 0.4722;
+                    ghost.leftLeg2.rotation.z = 0.001;
+                
+                    ghost.rightLeg.rotation.x = -0.914;
+                    ghost.rightLeg.rotation.z = -0.1157;
+                    ///////////////////////////////////////////////
+                    ghost.rightLeg2.rotation.x = 0.5388;
+                    ghost.rightLeg2.rotation.z = 0.0185;
+                
+                    ghost.leftHand.rotation.x = -0.3692;
+                    ghost.leftHand.rotation.z = 1.0442;
+                    ///////////////////////////////////////////////
+                    ghost.leftHand2.rotation.x = -1.1622;
+                    ghost.leftHand2.rotation.z = 0.0658;
+                
+                    ghost.rightHand.rotation.x = -0.5054;
+                    ghost.rightHand.rotation.z = -1.0883;
+                    ////////////////////////////////////////////////
+                    ghost.rightHand2.rotation.x = -1.0048;
+                    ghost.rightHand2.rotation.z = 0.052;
+                
+                }
+                else{
+                    ghost.mov=3;
+                    ghost.body.position.set(0,70,0);
+                    ghost.ghost.position.set(50,0,160);
+                    
+                }
+                movcor=0;
+                movingstep=2;
+                block=0;
+                mov=0;
+                ready=0;
+                ghost.ghostin=0;
+                ghost.time=0;
+            }
+        }
+        ////////////////////////////////////////////////
+        //keyframe(clock.getElapsedTime());
+		requestAnimationFrame(animate);
+        render();
+        if(jumprotate!=1){
+            camerarotation(rotationy);
+        }
+        powerleftandtime(usage,Time.getDelta())
+        countusage();
+        //console.log(roomlight.distance);
+        if(power > 4) {
+            windowflashing();
+            rightflashing();
+            leftflashing();
+        }
+        else if(power <=4 && al == 0){
+            roomlight.distance=50.0;
+            light1.distance = 1;
+            light2.distance = 1;
+	        light11.distance = 1;
+            light21.distance = 1;
+	        light3.distance = 1
+            openrightdoor();
+            openleftdoor();
+            openwindowdoor();
+	       camera.getWorldDirection(test);    
+            viewpoint = 0;
+            viewpointchange();
+            camera.lookAt(test.x*5000, 40, test.z*5000);
+            if(switchflag != 0) switchflag = 1;
+            if(pickup == 1){
+            pickupcamera();
+            tabletflip();
+	        camera.lookAt(returndegree.x*5000, 40, returndegree.z*5000);
+	    }
+	    camerabuttom.position.set(100, -7.5, 100);
+	    powertext.position.set(1000,0,0);
+	    usagetext.position.set(1000,0,0);
+            al=1;
+        }
+        timepass();
+        tabletflip();
+        ///////////////// white noise shader
+        meshMaterial.uniforms.mytime.value = clock2.getDelta();
+
+
+        //////////////////////////////////// check moving step
+
+        if(movingstep==2&&mov==0&&block==0){
+            console.log('correct');
+            ghost.origin=0;
+            setTimeout(moves,2000);
+            ghost.ghostin=0;
+            mov=1;
+        }
+		else if(movingstep==3&&ready==1&&finish==0){
+			 	
+				t += clock.getDelta();
+                t %= 30.6;
+				keyframe(t);
+
+                if(ghost.mov!=3){
+				ghost.ghost.rotation.x = intkey[0];
+                ghost.ghost.position.y = intkey[1]-5;
+				
+				if(ghost.mov==1){
+					ghost.ghost.rotation.y = intkey[2]+0.068;
+				}
+				else if(ghost.mov==2){
+					ghost.ghost.rotation.y = intkey[2]*(-1)+0.068;
+				}
+
+                ghost.rightHand.rotation.x = intkey[3];
+				ghost.rightHand.rotation.z = intkey[4];
+				
+				ghost.rightHand2.rotation.x = intkey[5];
+				ghost.rightHand2.rotation.z = intkey[6];
+				
+				ghost.leftHand.rotation.x = intkey[7];
+				ghost.leftHand.rotation.z = intkey[8];
+				
+				ghost.leftHand2.rotation.x = intkey[9];
+				ghost.leftHand2.rotation.z = intkey[10];
+				
+				ghost.rightLeg.rotation.x = intkey[11];
+				ghost.rightLeg.rotation.z = intkey[12];
+				
+				ghost.rightLeg2.rotation.x = intkey[13];
+				ghost.rightLeg2.rotation.z = intkey[14];
+				
+				ghost.leftLeg.rotation.x = intkey[15];
+                ghost.leftLeg.rotation.z = intkey[16];
+				
+				ghost.leftLeg2.rotation.x = intkey[17];
+				ghost.leftLeg2.rotation.z = intkey[18];
+				
+				
+			}
+			else if(ghost.mov==3&&finish==0){
+				
+				t += clock.getDelta();
+                t %= 30.6;
+				backkeyframe(t);
+				
+				ghost.ghost.rotation.x = backintkey[0];
+                ghost.ghost.position.y = backintkey[1]-40;				
+				ghost.ghost.rotation.y = backintkey[2]+2.5;
+
+                ghost.rightHand.rotation.x = backintkey[3];
+				ghost.rightHand.rotation.z = backintkey[4];
+				
+				ghost.rightHand2.rotation.x = backintkey[5];
+				ghost.rightHand2.rotation.z = backintkey[6];
+				
+				ghost.leftHand.rotation.x = backintkey[7];
+				ghost.leftHand.rotation.z = backintkey[8];
+				
+				ghost.leftHand2.rotation.x = backintkey[9];
+				ghost.leftHand2.rotation.z = backintkey[10];
+				
+				ghost.rightLeg.rotation.x = backintkey[11];
+				ghost.rightLeg.rotation.z = backintkey[12];
+				
+				ghost.rightLeg2.rotation.x = backintkey[13];
+				ghost.rightLeg2.rotation.z = backintkey[14];
+				
+				ghost.leftLeg.rotation.x = backintkey[15];
+                ghost.leftLeg.rotation.z = backintkey[16];
+				
+				ghost.leftLeg2.rotation.x = backintkey[17];
+				ghost.leftLeg2.rotation.z = backintkey[18];
+				
+				}
+            }
+            
+
+            ///////////////////////////////////////////////////// sound rotate
+
+            if(soundcheck==1){
+                if(ghost.mov==1){
+                   thebox.rotation.y-=0.04;
+                   //console.log(thebox.rotation.y);
+                }
+                else if(ghost.mov==2){
+                   thebox.rotation.y-=0.04;
+                   //console.log(thebox.rotation.y);
+                }
+                else{
+                   if(thebox.rotation.y>1.8){
+                       thebox.rotation.y+=0.04;
+                       //console.log(thebox.rotation.y);
+                   }
+                }
+            }
+
+            /////////////////////////////////////////////////////// random sound
+            var random =  Math.floor(Math.random()*2000+1);
+
+            if(random<5){
+                laughsound.play();
+            }
+            else if(random<10&&random>5){
+                laughsound2.play();
+            }
+
+            ///////////////////////////////////////////////////////
+            helper.update();
+		}
+
+
+        ////////////////////////////////////////////////////////// 
+        ////////////////////////////////////////////////////////// 以下為擴增程式
+        //////////////////////////////////////////////////////////
+
+
+        function render() {
+            renderer.clear(true);
+            renderer.render(scene, camera);
+            renderer.render(sceneHUD, cameraHUD);
+        }
+
+        //////////////////////////////////////////////////////key frame
+		function keyframe(t) {
+            
+                var s = ((t - ts) % T) / T;
+
+                 for (var i = 1; i < keys.length; i++) {
+					if (keys[i][0] > s) break;
+				}
+
+                var ii = i - 1;
+                if(i === 6)i = 0;
+
+                var a = (s - keys[ii][0]) / (keys[ii + 1][0] - keys[ii][0]);
+
+                var one = ts+T;
+                if(t>one){
+                    intkey=[keys[ii][1].bodyRotate = 0.2879,
+                            keys[ii][1].bodyHeight =0.001,
+                            keys[ii][1].bodyRotateY =1.1191,
+                            keys[ii][1].rightHandX =-1.1864,
+                            keys[ii][1].rightHandZ=-0.5852,
+                            keys[ii][1].rightHand2X =-0.5834,
+                            keys[ii][1].rightHand2Z =0.001,
+                            keys[ii][1].leftHandX =-1.1864,
+                            keys[ii][1].leftHandZ=0.5852,
+                            keys[ii][1].leftHand2X =-0.5834,
+                            keys[ii][1].leftHand2Z =0.001,
+                            keys[ii][1].rightLegX =0.001,
+                            keys[ii][1].rightLegZ =0.001,
+                            keys[ii][1].rightLeg2X =0.001,
+                            keys[ii][1].rightLeg2Z =0.001,
+                            keys[ii][1].leftLegX =0.001,
+                            keys[ii][1].leftLegZ =0.001,
+                            keys[ii][1].leftLeg2X=0.001,
+                            keys[ii][1].leftLeg2Z =0.001
+                    ];
+                    finish=1;
+                    setTimeout(openwhitenoise,2000);
+                    setTimeout(dead,4000);
+                }
+                else{
+                    intkey=[ 
+                                keys[ii][1].bodyRotate * (1 - a) + keys[ii + 1][1].bodyRotate * a,
+                                keys[ii][1].bodyHeight * (1 - a) + keys[ii + 1][1].bodyHeight * a,
+                                keys[ii][1].bodyRotateY * (1 - a) + keys[ii + 1][1].bodyRotateY * a,
+                                
+                                keys[ii][1].rightHandX * (1 - a) + keys[ii + 1][1].rightHandX * a,
+                                keys[ii][1].rightHandZ * (1 - a) + keys[ii + 1][1].rightHandZ * a,
+                            
+                                keys[ii][1].rightHand2X * (1 - a) + keys[ii + 1][1].rightHand2X * a,
+                                keys[ii][1].rightHand2Z * (1 - a) + keys[ii + 1][1].rightHand2Z * a,
+                            
+                                keys[ii][1].leftHandX * (1 - a) + keys[ii + 1][1].leftHandX * a,
+                                keys[ii][1].leftHandZ * (1 - a) + keys[ii + 1][1].leftHandZ * a,
+                            
+                                keys[ii][1].leftHand2X * (1 - a) + keys[ii + 1][1].leftHand2X * a,
+                                keys[ii][1].leftHand2Z * (1 - a) + keys[ii + 1][1].leftHand2Z * a,
+                        
+                                keys[ii][1].rightLegX * (1 - a) + keys[ii + 1][1].rightLegX * a,
+                                keys[ii][1].rightLegZ * (1 - a) + keys[ii + 1][1].rightLegZ * a,
+                            
+                                keys[ii][1].rightLeg2X * (1 - a) + keys[ii + 1][1].rightLeg2X * a,
+                                keys[ii][1].rightLeg2Z * (1 - a) + keys[ii + 1][1].rightLeg2Z * a,
+                            
+                                keys[ii][1].leftLegX * (1 - a) + keys[ii + 1][1].leftLegX * a,
+                                keys[ii][1].leftLegZ * (1 - a) + keys[ii + 1][1].leftLegZ * a,
+                            
+                                keys[ii][1].leftLeg2X * (1 - a) + keys[ii + 1][1].leftLeg2X * a,
+                                keys[ii][1].leftLeg2Z * (1 - a) + keys[ii + 1][1].leftLeg2Z * a		
+                    ];
+                }
+			
+        }
+
+		function backkeyframe(t2) {
+            
+                var s2 = ((t2 - ts2) % T2) / T2;
+
+                 for (var i2 = 1; i2 < backkeys.length; i2++) {
+					if (backkeys[i2][0] > s2) break;
+				}
+
+                //console.log(i2);
+
+                var ii2 = i2 - 1;
+                if(i2 === 6)i2 = 0;
+
+                var a2 = (s2 - backkeys[ii2][0]) / (backkeys[ii2 + 1][0] - backkeys[ii2][0]);
+				
+				var one2 = ts2+T2;
+               if(t2>one2){
+                backintkey=[backkeys[ii2][1].backbodyRotate = -0.2879,
+                            backkeys[ii2][1].backbodyHeight =0.001,
+                            backkeys[ii2][1].backbodyRotateY =1.1191,                           
+							backkeys[ii2][1].backrightHandX =-1.1864,
+                            backkeys[ii2][1].backrightHandZ=-0.5852,
+							backkeys[ii2][1].backrightHand2X =-0.5834,               
+                            backkeys[ii2][1].backrightHand2Z =0.001,                           
+							backkeys[ii2][1].backleftHandX =-1.1864, 
+							backkeys[ii2][1].backleftHandZ=0.5852,                                            
+							backkeys[ii2][1].backleftHand2X =-0.5834,
+							backkeys[ii2][1].backleftHand2Z =0.001,                           
+							backkeys[ii2][1].backrightLegX =0.001,  
+							backkeys[ii2][1].backrightLegZ =0.001,                            
+							backkeys[ii2][1].backrightLeg2X =0.001,
+							backkeys[ii2][1].backrightLeg2Z =0.001,                           
+							backkeys[ii2][1].backleftLegX =0.001,  
+							backkeys[ii2][1].backleftLegZ =0.001,                       
+                            backkeys[ii2][1].backleftLeg2X=0.001,
+							backkeys[ii2][1].backleftLeg2Z =0.001
+                    ];
+                    setTimeout(openwhitenoise,2000);
+                    setTimeout(dead,4000);
+                    finish=1;
+                }
+				else{
+
+                    backintkey=[ 
+                            
+                                backkeys[ii2][1].backbodyRotate * (1 - a2) + backkeys[ii2 + 1][1].backbodyRotate * a2,
+                                backkeys[ii2][1].backbodyHeight * (1 - a2) + backkeys[ii2 + 1][1].backbodyHeight * a2,
+                                backkeys[ii2][1].backbodyRotateY * (1 - a2) + backkeys[ii2 + 1][1].backbodyRotateY * a2,
+                                
+                                backkeys[ii2][1].backrightHandX * (1 - a2) + backkeys[ii2 + 1][1].backrightHandX * a2,
+                                backkeys[ii2][1].backrightHandZ * (1 - a2) + backkeys[ii2 + 1][1].backrightHandZ * a2,
+                            
+                                backkeys[ii2][1].backrightHand2X * (1 - a2) + backkeys[ii2 + 1][1].backrightHand2X * a2,
+                                backkeys[ii2][1].backrightHand2Z * (1 - a2) + backkeys[ii2 + 1][1].backrightHand2Z * a2,
+                            
+                                backkeys[ii2][1].backleftHandX * (1 - a2) + backkeys[ii2 + 1][1].backleftHandX * a2,
+                                backkeys[ii2][1].backleftHandZ * (1 - a2) + backkeys[ii2 + 1][1].backleftHandZ * a2,
+                        
+                                backkeys[ii2][1].backleftHand2X * (1 - a2) + backkeys[ii2 + 1][1].backleftHand2X * a2,
+                                backkeys[ii2][1].backleftHand2Z * (1 - a2) + backkeys[ii2 + 1][1].backleftHand2Z * a2,
+                        
+                                backkeys[ii2][1].backrightLegX * (1 - a2) + backkeys[ii2 + 1][1].backrightLegX * a2,
+                                backkeys[ii2][1].backrightLegZ * (1 - a2) + backkeys[ii2 + 1][1].backrightLegZ * a2,
+                        
+                                backkeys[ii2][1].backrightLeg2X * (1 - a2) + backkeys[ii2 + 1][1].backrightLeg2X * a2,
+                                backkeys[ii2][1].backrightLeg2Z * (1 - a2) + backkeys[ii2 + 1][1].backrightLeg2Z * a2,
+                            
+                                backkeys[ii2][1].backleftLegX * (1 - a2) + backkeys[ii2 + 1][1].backleftLegX * a2,
+                                backkeys[ii2][1].backleftLegZ * (1 - a2) + backkeys[ii2 + 1][1].backleftLegZ * a2,
+                            
+                                backkeys[ii2][1].backleftLeg2X * (1 - a2) + backkeys[ii2 + 1][1].backleftLeg2X * a2,
+                                backkeys[ii2][1].backleftLeg2Z * (1 - a2) + backkeys[ii2 + 1][1].backleftLeg2Z * a2
+                        
+                    ];
+                }
+			
+        }
+        //////////////////////////////////////////////////////////////////
+
+        function dead(){
+            var texture = new THREE.TextureLoader().load('DEAD.png');
+
+            var texMat = new THREE.MeshBasicMaterial({
+            map: texture
+            });
+            
+            var geometry = new THREE.PlaneGeometry( 40, 30, 32 );
+
+            deadscene = new THREE.Mesh(geometry, texMat);	
+            
+            sceneHUD.add(deadscene);
+            deadscene.position.set(0,0,310);
+            gamestart=false;
+            setTimeout(originscene,5000)
+        }
+		
+        ////////////////////////////////////////////////////////////////// key frame
+        /*
+        function loadJSON() {
+            return {
+                "preset": "Step6",
+                "remembered": {
+                    "Default": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step0": {
+                        "0": {
+							  "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step1": {
+                        "0": {
+                         "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step2": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step3": {
+                        "0": {
+                             "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step4": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step5": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step6": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    }
+                },
+                "closed": false,
+                "folders": {}
+            }
+        }
+			*/
+///////////////////////////////////////////////////////////////////////////////		
+		
+		function windowflashing(){
+            
+        if(lightstate3 == 1){
+            windowlightsound.play();
+            if(Time.elapsedTime % 3 < 1){
+            light3.distance = 50;
+            }
+            else if(Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2){
+            light3.distance = 40;
+            }
+            else if(Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3){
+            light3.distance = 50;
+            }
+            else if(Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5){
+            light3.distance = 35;
+            }
+            else if(Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2){
+            light3.distance = 50;
+            }
+            else if(Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3){
+            light3.distance = 40;
+            }
+            else if(Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5){
+            light3.distance = 50;
+            }
+            else if(Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7){
+            light3.distance = 40;
+            }
+            else{
+            light3.distance = 50;
+            }
+        }
+        else {
+            windowlightsound.pause();
+            light3.distance = 1;
+        }
+        
+        }
+
+        function rightflashing(){
+        if(lightstate1 == 1){
+            //rightlightsound.play();   
+            light11.distance = 65;
+            
+            if(Time.elapsedTime % 3 < 1){
+            light1.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2){
+            light1.distance = 45;
+            light11.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3){
+            light1.distance = 65;
+            light11.distance = 55;
+            }
+            else if(Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5){
+            light1.distance = 35;
+            light11.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2){
+            light1.distance = 65;
+            light11.distance = 55;
+            }
+            else if(Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3){
+            light1.distance = 45;
+            light11.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5){
+            light1.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7){
+            light1.distance = 45;
+            }
+            else{
+            light1.distance = 65;
+            }
+        }
+        else{
+        rightlightsound.pause();
+        light1.distance = 1;
+        light11.distance = 1;
+        }
+        
+        }
+
+        function leftflashing(){
+            
+        if(lightstate2 == 1){
+            //leftlightsound.play();
+            light21.distance = 65;
+            
+            if(Time.elapsedTime % 3 < 1){
+            light2.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2){
+            light2.distance = 45;
+            light21.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3){
+            light2.distance = 65;
+            light21.distance = 55;
+            }
+            else if(Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5){
+            light2.distance = 35;
+            light21.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2){
+            light2.distance = 65;
+            light21.distance = 55;
+            }
+            else if(Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3){
+            light2.distance = 45;
+            light21.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5){
+            light2.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7){
+            light2.distance = 45;
+            }
+            else{
+            light2.distance = 65;
+            }
+        }
+        else{
+        leftlightsound.pause();
+        light2.distance = 1;
+        light21.distance = 1;
+        }
+        }
+
+
+        function maketable(l ,x ,z){
+
+        var texture = new THREE.TextureLoader().load( 'https://i.imgur.com/FM8caZz.jpg' );
+
+        // immediately use the texture for material creation
+        var texMat = new THREE.MeshPhongMaterial( { map: texture } );
+
+
+        var material = new THREE.MeshPhongMaterial( {color: 0xffffff, side: THREE.DoubleSide} );
+
+        var geometry = new THREE.BoxGeometry( 10*l, l, 5*l );
+        var table = new THREE.Mesh( geometry, texMat );
+        scene.add(table);
+        table.position.set(x, 5.5*l, z);
+
+        var geometry = new THREE.BoxGeometry( l, 5*l, l );
+        //var material = new THREE.MeshNormalMaterial()
+        var cube1 = new THREE.Mesh( geometry, material );
+        scene.add( cube1 );
+        table.add(cube1);
+        cube1.position.set(-8*l/2,-3*l,-3*l/2);
+        var cube2 = new THREE.Mesh( geometry, material );
+        scene.add( cube2 );
+        table.add(cube2);
+        cube2.position.set(-8*l/2,-3*l,3*l/2);
+        var cube3 = new THREE.Mesh( geometry, material );
+        scene.add( cube3 );
+        table.add(cube3);
+        cube3.position.y = 5*l/2;
+        cube3.position.set(8*l/2,-3*l,3*l/2);
+        var cube4 = new THREE.Mesh( geometry, material );
+        scene.add( cube4 );
+        table.add(cube4);
+        cube4.position.set(8*l/2,-3*l,-3*l/2);
+        }
+
+	function makewall(Dsize, wallheight) {
+
+	  var geometry = new THREE.BoxGeometry(5, wallheight ,100);
+  
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/nwTSw4l.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+  
+	  var rightwall = new THREE.Mesh(geometry, texMat);
+	  scene.add(rightwall);
+	  rightwall.position.set(100, wallheight / 2 - 10, 50);
+	  
+	  var geometry = new THREE.BoxGeometry(5, wallheight ,100);
+	  
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/gIqf5Lb.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	  
+	  var leftwall = new THREE.Mesh(geometry, texMat);
+	  scene.add(leftwall);
+	  leftwall.position.set(-100, wallheight / 2 - 10, 50);
+	
+	  
+	  var geometry = new THREE.BoxGeometry(5, wallheight, 100 - Dsize);
+	  
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/2nQfXeF.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	  
+	  var rightwall2 = new THREE.Mesh(geometry, texMat);
+	  scene.add(rightwall2);
+	  rightwall2.position.set(100, wallheight / 2 - 10, -100 + (100 - Dsize) / 2);
+	  
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/7FI95WC.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	  
+	  var leftwall2 = new THREE.Mesh(geometry, texMat);
+	  scene.add(leftwall2);
+	  leftwall2.position.set(-100, wallheight / 2 - 10, -100 + (100 - Dsize) / 2);
+	
+	  ///////////////////////////door//////////////////////////
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/awWOSCI.jpg');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	
+	
+	  var geometry = new THREE.BoxGeometry(4.9, wallheight, Dsize);
+	  rightdoor = new THREE.Mesh(geometry, texMat);
+	  rightdoor.position.set(100, wallheight / 2, -1 * Dsize / 2);
+	  scene.add(rightdoor);
+  	  leftdoor = new THREE.Mesh(geometry, texMat);
+	  leftdoor.position.set(-100, wallheight / 2, -1 * Dsize / 2);
+	  scene.add(leftdoor);
+	
+	}
+	        ///////////////////////////////////////////////////////////////////
+	
+	function makewindow(wallheight, windowsize) {
+		
+	  
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/pzdqvl6.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	
+	  var geometry = new THREE.BoxGeometry(windowsize, windowsize, 5);
+	  windowdoor = new THREE.Mesh(geometry, texMat);
+	
+	  windowdoor.position.set(0, wallheight + windowsize / 2, 100 - 0.01)
+	  scene.add(windowdoor);
+	
+	
+	  ///////////////front walls///////////////////
+	  var geometry = new THREE.BoxGeometry(200, windowsize + 20, 5);
+	  var material = new THREE.MeshPhongMaterial({
+	    color: 0x5c4332,
+	    side: THREE.DoubleSide
+	  });
+	  //front
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/w20eRrs.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	  
+	  var walls1 = new THREE.Mesh(geometry, texMat);
+	  scene.add(walls1);
+	  walls1.position.set(0, wallheight + windowsize / 2, -100);
+	  ///////////////right and left walls///////////////////
+	  var geometry = new THREE.BoxGeometry(5, windowsize + 20, 200);
+	  //right
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/6rpZyxp.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	
+	  var walls2 = new THREE.Mesh(geometry, texMat);
+	  scene.add(walls2);
+	  walls2.position.set(100, wallheight + windowsize / 2, 0);
+	  //left
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/CaIo9vS.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	  
+	  var walls3 = new THREE.Mesh(geometry, texMat);
+	  scene.add(walls3);
+	  walls3.position.set(-100, wallheight + windowsize / 2, 0);
+	
+	  ///////////////right and left walls///////////////////
+	  var geometry = new THREE.BoxGeometry((200 - windowsize) / 2, windowsize, 5);
+	  //back left
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/BWZ4az3.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	  
+	  var walls4 = new THREE.Mesh(geometry, texMat);
+	  scene.add(walls4);
+	  walls4.position.set(windowsize / 2 + (200 - windowsize) / 2 / 2, wallheight + windowsize / 2, 100);
+	  //back right
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/1aG8ivb.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	  
+	  var walls5 = new THREE.Mesh(geometry, texMat);
+	  scene.add(walls5);
+	  walls5.position.set(-(windowsize / 2 + (200 - windowsize) / 2 / 2), wallheight + windowsize / 2, 100);
+
+
+
+	  var geometry = new THREE.BoxGeometry(2, windowsize, 80);
+	
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/ZUWRF8R.jpg');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+
+	  var windows1 = new THREE.Mesh(geometry, texMat);
+	  scene.add(windows1);
+	  windows1.position.set(windowsize / 2 - 1, wallheight + windowsize / 2, 100 + 40 - 2.5)
+	
+	  var windows2 = new THREE.Mesh(geometry, texMat);
+	  scene.add(windows2);
+	  windows2.position.set(-windowsize / 2 + 1, wallheight + windowsize / 2, 100 + 40 - 2.5)
+	
+	  var geometry = new THREE.BoxGeometry(windowsize - 4, 2, 40);
+	
+	  var windows3 = new THREE.Mesh(geometry, texMat);
+	  scene.add(windows3);
+	  windows3.position.set(0, wallheight + windowsize / 2 + windowsize / 2 - 1, 100 + 20 - 2.5)
+	
+	  var geometry = new THREE.BoxGeometry(windowsize - 4, 2, 80);
+	
+	  var windows4 = new THREE.Mesh(geometry, texMat);
+	  scene.add(windows4);
+	  windows4.position.set(0, wallheight + windowsize / 2 - windowsize / 2 + 1, 100 + 40 - 2.5)
+	
+	  var geometry = new THREE.BoxGeometry(40, 80, 2);
+	
+	  var windows5 = new THREE.Mesh(geometry, texMat);
+	  scene.add(windows5);
+	  windows5.position.set(0, wallheight + windowsize / 2 - windowsize / 2 + 40, 100 + 80 - 2.5)
+	
+	
+	  var geometry = new THREE.BoxGeometry(2, 40, 40);
+	
+	  var windows6 = new THREE.Mesh(geometry, texMat);
+	  scene.add(windows6);
+	  windows6.position.set(20 - 1, wallheight + windowsize / 2 - windowsize / 2 + 60, 100 + 60 - 2.5)
+	
+	  var windows7 = new THREE.Mesh(geometry, texMat);
+	  scene.add(windows7);
+	  windows7.position.set(-20 + 1, wallheight + windowsize / 2 - windowsize / 2 + 60, 100 + 60 - 2.5)
+	
+	  var windowlightbox = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 25), new THREE.MeshPhongMaterial({
+	    color: 0xffffff
+	  }))
+	  scene.add(windowlightbox);
+	  windowlightbox.position.set(0, wallheight + windowsize / 2 + windowsize / 2 - 3, 100 + 25 / 2 + 5)
+	}
+
+        function openrightdoor(){
+            for(var i = 0 ; i < wallheight ; ){
+        rightdoor.position.y += 0.01; 
+        i = i + 0.01;
+        }
+        rdoor = false;
+        doorsound.play();
+        }
+
+        function closerightdoor(){
+            for(var i = 0 ; i < wallheight ; ){
+        rightdoor.position.y -= 0.01; 
+        i = i + 0.01;
+        }
+        rdoor = true;
+        doorsound2.play();
+        }
+
+        function openleftdoor(){
+            for(var i = 0 ; i < wallheight ; ){
+        leftdoor.position.y += 0.01; 
+        i = i + 0.01;
+        }
+        ldoor = false;
+        doorsound.play();
+        }
+
+        function closeleftdoor(){
+            for(var i = 0 ; i < wallheight ; ){
+        leftdoor.position.y -= 0.01; 
+        i = i + 0.01;
+        }
+        ldoor = true;
+        doorsound2.play();
+        }
+
+        function openwindowdoor(){
+            for(var i = 0 ; i < windowsize ; ){
+        windowdoor.position.y += 0.01; 
+        i = i + 0.01;
+        }
+        wdoor = false;
+        ventsound.pause();
+        ventsound.play();
+        }
+
+        function closewindowdoor(){
+            for(var i = 0 ; i < windowsize ; ){
+        windowdoor.position.y -= 0.01; 
+        i = i + 0.01;
+        }
+        wdoor = true;
+        ventsound.pause();
+        ventsound.play();
+        }
+
+        function onDocumentMouseMove(event) {
+
+        event.preventDefault();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        //mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        if(mouse.x > 0.3 && viewpoint == 1)	rotationy = (mouse.x-0.3)*2;
+        else if(mouse.x < -0.3 && viewpoint == 1) rotationy = (mouse.x+0.3)*2;
+        else rotationy = 0;
+            
+
+        }
+
+        function makebuttoms(wallheight,doorsize){
+            /// set door buttom 
+        var geometry = new THREE.BoxGeometry(2, 5 ,5);
+            var material = new THREE.MeshPhongMaterial( {color: 0xff0000, side: THREE.DoubleSide} );
+            var rightdoorbuttom = new THREE.Mesh( geometry, material );
+        scene.add(rightdoorbuttom);
+        rightdoorbuttom.position.set(97,wallheight / 2 + 10 , (-100 +(100 - doorsize))/2 + doorsize / 2 + 10);
+        rightdoorpickables.push(rightdoorbuttom) ;
+        var leftdoorbuttom = new THREE.Mesh( geometry, material );
+        scene.add(leftdoorbuttom);
+        leftdoorbuttom.position.set(-97,wallheight / 2 + 10 , (-100 +(100 - doorsize))/2 + doorsize / 2 + 10);
+        leftdoorpickables.push(leftdoorbuttom);
+        //// door buttom
+        document.addEventListener('mousedown', rightsidedoor, false);
+        document.addEventListener('mousedown', leftsidedoor, false);
+        
+        
+        //window door buttom
+        var geometry = new THREE.BoxGeometry(5, 5 ,2);
+        var windowdoorbuttom = new THREE.Mesh( geometry, material );
+        scene.add(windowdoorbuttom);
+        windowdoorbuttom.position.set(-25 ,wallheight + 10 , 100 - 5);
+        windowdoorpickables.push(windowdoorbuttom) ;
+        
+        document.addEventListener('mousedown', windowsidedoor, false);
+        
+        /// set light buttom
+        var geometry = new THREE.BoxGeometry(2, 5 ,5);
+            var material = new THREE.MeshPhongMaterial( {color: 0xf5f5f5, side: THREE.DoubleSide} );
+            var rightlightbuttom = new THREE.Mesh( geometry, material );
+        scene.add(rightlightbuttom);
+        rightlightbuttom.position.set(97,wallheight / 2 + 3, (-100 +(100 - doorsize))/2 + doorsize / 2 + 10 );
+        rightlightpickables.push(rightlightbuttom);
+        var leftlightbuttom = new THREE.Mesh( geometry, material );
+        scene.add(leftlightbuttom);
+        leftlightbuttom.position.set(-97,wallheight / 2 + 3, (-100 +(100 - doorsize))/2 + doorsize / 2 + 10 );
+        leftlightpickables.push(leftlightbuttom);
+        
+        //// light buttom
+        document.addEventListener('mousedown', rightsidelight, false);
+        document.addEventListener('mousedown', leftsidelight, false);
+        
+        
+        
+        //window light buttom
+        var geometry = new THREE.BoxGeometry(5, 5 ,2);
+        var windowlightbuttom = new THREE.Mesh( geometry, material );
+        scene.add(windowlightbuttom);
+        windowlightbuttom.position.set(-25 ,wallheight + 2.5 , 100 - 5);
+        windowlightpickables.push(windowlightbuttom) ;
+        
+        document.addEventListener('mousedown', windowsidelight, false);
+        
+        }
+
+        function rightsidedoor(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(rightdoorpickables, false);
+        if (intersects.length > 0 && power > 4) {
+            if(rightwallstate == 0){
+                openrightdoor();
+                rightwallstate = 1;
+            }
+            else if(rightwallstate == 1){
+                closerightdoor();
+                rightwallstate = 0;
+            }
+            }
+        }
+
+        function leftsidedoor(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(leftdoorpickables, false);
+        if (intersects.length > 0 && power > 4) {
+            if(leftwallstate == 0){
+            openleftdoor();
+            leftwallstate = 1;
+            }
+            else if(leftwallstate == 1){
+            closeleftdoor();
+            leftwallstate = 0;
+            }
+            }
+        }
+
+        function windowsidedoor(event){
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(windowdoorpickables, false);
+        if (intersects.length > 0 && power > 4) {
+            if(windowdoorstate == 0){
+            openwindowdoor();
+            windowdoorstate = 1;
+            }
+            else if(windowdoorstate == 1){
+            closewindowdoor();
+            windowdoorstate = 0;
+            }
+            }
+        }
+
+        function rightsidelight(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(rightlightpickables, false);
+        if (intersects.length > 0 && power > 4) {
+            //rightlight();
+            if(lightstate1 == 0){
+                    lightstate1 = 1;
+                    if(movcor==1&&ghost.mov==2) checkscare.play();
+            }
+            else if(lightstate1 == 1) lightstate1 = 0;
+            }
+        }
+
+        function leftsidelight(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(leftlightpickables, false);
+        if (intersects.length > 0 && power > 4) {
+            //leftlight();
+            if(lightstate2 == 0){
+                 lightstate2 = 1;
+                 if(movcor==1&&ghost.mov==1) checkscare.play();
+            }
+            else if(lightstate2 == 1) lightstate2 = 0;
+            }
+        }
+
+        function windowsidelight(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(windowlightpickables, false);
+        if (intersects.length > 0 && power > 4) {
+            //windowlight();
+            if(lightstate3 == 0){
+                    lightstate3 = 1;
+                    if(movcor==1&&ghost.mov==3) checkscare.play();
+            }
+            else if(lightstate3 == 1) lightstate3 = 0;
+            }
+        }
+
+	function camerarotation(x) {
+	
+	  var camerarotate = new THREE.Vector3();
+	  camera.getWorldDirection(camerarotate);
+	  //console.log('c.z = '+camerarotate.z+' x ='+x+' c.x = '+camerarotate.x);
+	  if (viewpoint != 1) rotationy = 0;
+	  else if (quickswitch == 0 && camerarotate.z < -0.2) camera.rotation.y -= x / 100;
+	  else if (camerarotate.z < -0.2) camera.rotation.y += x / 100;
+	  else if (camerarotate.z < -0.1 && x > 0 && camerarotate.x < 0) camera.rotation.y -= x / 100;
+	  else if (camerarotate.z < -0.1 && x < 0 && camerarotate.x > 0) camera.rotation.y -= x / 100;
+	}
+
+	function makehud() {
+	  var Text2D = THREE_Text.MeshText2D;
+	  var textAlign = THREE_Text.textAlign;
+	
+	  powertext = new Text2D("Power left:" + Math.floor(power / 10) + '%', {
+	    align: textAlign.center,
+	    font: '144px Arial',
+	    fillStyle: '#ffffff',
+	    antialias: false
+	  });
+	  powertext.position.set(-5.5, -5.5, 100);
+	  powertext.scale.set(0.007, 0.007, 0.007);
+	  sceneHUD.add(powertext);
+
+
+	  usagetext = new Text2D("Usage:", {
+	    align: textAlign.center,
+	    font: '144px Arial',
+	    fillStyle: '#ffffff',
+	    antialias: false
+	  });
+	  usagetext.position.set(-6.2, -6.5, 100);
+	  usagetext.scale.set(0.007, 0.007, 0.007);
+	  sceneHUD.add(usagetext);
+	
+	  timetext = new Text2D("12 AM", {
+	    align: textAlign.center,
+	    font: '144px Arial',
+	    fillStyle: '#ffffff',
+	    antialias: false
+	  });
+	  timetext.position.set(7.2, 8.5, 100);
+	  timetext.scale.set(0.007, 0.007, 0.007);
+	  sceneHUD.add(timetext);
+	
+	
+	}
+
+
+	function timepass(){
+	if(Time.elapsedTime < 30){
+  	  timetext.text = '12 AM';
+	}
+	else if(Time.elapsedTime < 60){
+	  timetext.text = '  1 AM';
+	}
+	else if(Time.elapsedTime < 90){
+	  	timetext.text = '  2 AM';
+	}
+	else if(Time.elapsedTime < 120){
+	  	timetext.text = '  3 AM';
+	}
+	else if(Time.elapsedTime < 150){
+	  	timetext.text = '  4 AM';
+	}
+	else if(Time.elapsedTime < 180){
+	 	timetext.text = '  5 AM';
+	}
+	else if(Time.elapsedTime > 180){
+
+		var texture = new THREE.TextureLoader().load('https://i.imgur.com/pAZJlMz.png');
+
+		var texMat = new THREE.MeshBasicMaterial({
+	  	  map: texture
+	  	});
+		  
+		var geometry = new THREE.PlaneGeometry( 40, 30, 32 );
+
+		var victory2 = new THREE.Mesh(geometry, texMat);	
+		
+		sceneHUD.add(victory2);
+		victory2.position.set(1.5,0,399);
+		setTimeout(victorychange,1500);
+	}
+
+	}
+
+
+	function victorychange(){
+		var texture = new THREE.TextureLoader().load('https://i.imgur.com/iIirXnH.png');
+	
+	  	var texMat = new THREE.MeshBasicMaterial({
+	  	  map: texture
+	  	});
+		
+		var geometry = new THREE.PlaneGeometry( 40, 30, 32 );
+		  
+		  
+		var victory = new THREE.Mesh(geometry, texMat);	
+		
+		sceneHUD.add(victory);
+		victory.position.set(0,0,400);
+	}
+
+
+	function powerleftandtime(usage, timepass) {
+	  power = power - usage * timepass;
+	  //powertext.text = 'Power left:' + Math.floor(power * 10 / 36) + '%'
+	  var tmptext = 'Usage:'
+	  var i = 0;
+	  for (i = 0; i < usage; i++) {
+	    tmptext += 'I';
+	  }
+	  for (i = 0; i < 8 - usage; i++) {
+	    tmptext += ' ';
+	  }
+	  //console.log(''+usage)
+	  usagetext.text = tmptext;
+	  
+	  tmptext = 'Power left:' + Math.floor(power * 10 / 36) + '%'
+	  if(power < 36) tmptext += '  ';
+	  powertext.text = tmptext;
+	  //if(power < 0) powertext.text = 'Power left:0%  '
+	  //else if(power < 36) powertext.text = 'Power left:' + Math.floor(power * 10 / 36) + '%  '
+	
+	}
+	
+	function countusage() {
+	  if (Math.floor(power * 10 / 36) > 0) usage = 1;
+	  else {
+	    usage = 0;
+	    return;
+	  }
+	  if (lightstate1 == 1) usage += 1;
+	  if (lightstate2 == 1) usage += 1;
+	  if (lightstate3 == 1) usage += 1;
+	  if (rightwallstate == 0) usage += 1;
+	  if (leftwallstate == 0) usage += 1;
+	  if (windowdoorstate == 0) usage += 1;
+	
+	  //console.log(''+usage)
+	}
+
+        function makeoutside(){
+
+            var texture = new THREE.TextureLoader().load( 'https://i.imgur.com/FM8caZz.jpg' );
+
+            var texMat = new THREE.MeshPhongMaterial( { map: texture } );
+
+
+            var geometry = new THREE.PlaneGeometry( 405, 305, 32 );
+            var corridor = new THREE.Mesh( geometry, texMat );
+            scene.add( corridor );
+            corridor.rotation.x = -Math.PI/2;
+            corridor.position.y = -0.05;
+            corridor.position.z = -50;
+
+
+
+
+            var loader = new THREE.TextureLoader();
+            loader.crossOrigin = '';
+
+            texture = loader.load('https://i.imgur.com/FAH1snx.jpg?1');
+
+            texture.repeat.set(6, 6);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+
+            var outwalls1 = new THREE.Mesh(new THREE.BoxGeometry(10, 300 ,350), 
+            new THREE.MeshPhongMaterial({map: texture}))
+            outwalls1.rotation.x = Math.PI / 2;
+            scene.add(outwalls1);
+            outwalls1.position.set(-200,50,-30)
+
+
+
+
+            var outwalls2 = new THREE.Mesh(new THREE.BoxGeometry(10, 300 ,350), 
+            new THREE.MeshPhongMaterial({map: texture}))
+            outwalls2.rotation.x = Math.PI / 2;
+            scene.add(outwalls2);
+            outwalls2.position.set(200,50,-30)
+
+
+            var outwalls3 = new THREE.Mesh(new THREE.BoxGeometry(400, 10 ,100), 
+            new THREE.MeshPhongMaterial({map: texture}))
+            outwalls3.rotation.x = Math.PI / 2;
+            scene.add(outwalls3);
+            outwalls3.position.set(0,50,-200)
+
+        }
+
+
+        function onDocumentKeyDown(event) {
+	  var keyCode = event.which;
+	  // 
+	  if (keyCode == 76 && viewpoint == 2) {
+	    if (lightstate1 == 1) lightstate1 = 0;
+	    else if (lightstate1 == 0) lightstate1 = 1;
+	  } else if (keyCode == 76 && viewpoint == 0) {
+	    if (lightstate2 == 1) lightstate2 = 0;
+	    else if (lightstate2 == 0) lightstate2 = 1;
+	  } else if (keyCode == 66) {
+	    if (switchflag == 0) {
+	      if (viewpoint == 1){
+	      switchflag = 1;
+	      camera.getWorldDirection(breturndegree);
+	      //console.log('get')
+	      }
+	      else if (viewpoint == 2){
+	      console.log('2')
+	      switchflag = 2;
+	      setTimeout(bpickupcamera,20);
+	      }
+	      else{
+	      switchflag = 3;
+	      setTimeout(bpickupcamera,20);
+	      }
+	      camera.position.x = 0;
+	      camera.position.z = 10;
+	      camera.position.y = 40;
+	      camera.lookAt(0, 40, 100);
+	      viewpoint = 1;
+	    } 
+	    else if (switchflag == 1) {
+	    //console.log('0')
+	    switchflag = 0;
+  	    camera.position.x = 0;
+  	    camera.position.z = 10;
+  	    camera.position.y = 40;
+  	    camera.lookAt(breturndegree.x*5000, 40, breturndegree.z*5000)
+  	  } 
+  	  else if (switchflag == 2) {
+  	    pickupcamera();
+  	    setTimeout(switchcondition2,650);
+  	  } 
+  	  else {
+  	    pickupcamera();
+  	    setTimeout(switchcondition3,650);
+  	  }
+	
+	  }
+	  else if (keyCode == 81){
+	  var test2 = new THREE.Vector3(0, 0, 0);
+	  camera.getWorldDirection(test2);
+	  //console.log('x = '+test2.x+' y = '+test2.y+' z = '+test2.z)
+	  }
+	  render();
+	}
+	
+
+	function switchcondition2(){
+	  camera.position.x = 120;
+	  camera.position.z = 100;
+	  camera.position.y = 80;
+	  camera.lookAt(140, 10, -50);
+	  viewpoint = 2;
+	  switchflag = 0;
+	}
+	
+	function switchcondition3(){
+	  camera.position.x = -120;
+	  camera.position.z = 100;
+	  camera.position.y = 80;
+	  camera.lookAt(-140, 10, -50);
+	  viewpoint = 0;
+	  switchflag = 0;
+	}
+
+
+	function makecamerabuttom() {
+	  var loader = new THREE.TextureLoader();
+	  loader.setCrossOrigin('');
+	  tex = loader.load('https://i.imgur.com/beiOFVd.png');
+	  alpha = loader.load('https://i.imgur.com/URqmZE9.png')
+	  camerabuttom = new THREE.Mesh(new THREE.PlaneGeometry(8, 2), new THREE.MeshBasicMaterial({
+	    map: tex,
+	    alphaMap:alpha,
+	    transparent: true,
+	    side: THREE.DoubleSide
+	  }));
+	
+	  camerabuttom.position.y = 1e-2;
+	
+	  sceneHUD.add(camerabuttom);
+	  camerabuttom.position.set(0, -8.5, 100)
+	  camerapickables.push(camerabuttom);
+	
+	  document.addEventListener('mousedown', camerachange, false);
+	
+	}
+	
+	function camerachange(event) {
+	  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+	  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+	
+	  raycaster.setFromCamera(mouse, cameraHUD);
+	  var intersects = raycaster.intersectObjects(camerapickables, false);
+	  if (intersects.length > 0 && power > 4) {
+	  switchflag = 0;
+	  if(pickup == 0){
+	    pickupcamera();	
+	    setTimeout(viewpointchange,650);
+	  }
+	  else if(pickup == 1){
+	    pickupcamera();
+	    viewpoint = 0
+	    viewpointchange();
+	  }
+	  }
+	}
+	
+	
+	function maketablet() {
+	  var geometry = new THREE.BoxGeometry(20, 2, 10);
+	
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/5x7abFc.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	
+	  tablet = new THREE.Mesh(geometry, texMat);
+	
+	  geometry = new THREE.BoxGeometry(1, 1, 1);
+	
+	  tabletbody = new THREE.Mesh(geometry, texMat);
+	
+	  scene.add(tabletbody);
+	
+	  tabletbody.position.set(0, 0, 10);
+	
+	  scene.add(tablet);
+	
+	  tabletbody.add(tablet);
+	
+	}
+	
+	function tabletflip() {
+	  if (pickup == 1) {
+	    if (fliptheta < Math.PI / 2) {
+          putdownmonitor.play();
+	      tablet.rotation.x += 0.05;
+	      fliptheta += 0.05;
+	      tablet.position.set(0, 30 + 10 * Math.sin(fliptheta), -10 + -10 * Math.cos(fliptheta));
+	    }
+	  }
+	  if (pickup == 0) {
+	    if (fliptheta > 0) {
+          putdownmonitor.play();
+	      tablet.rotation.x -= 0.05;
+	      fliptheta -= 0.05;
+	      tablet.position.set(0, 30 + 10 * Math.sin(fliptheta), -10 + -10 * Math.cos(fliptheta));
+	    }
+	    else tablet.position.set(1000,0,0)
+	  }
+	
+	}
+	
+	
+	function pickupcamera(){
+	
+  	if (pickup == 0) {
+  	  camera.getWorldDirection(test);
+  	  if (test.z < 0) tabletbody.rotation.y = Math.acos(test.x) - 1.57;
+  	  else if (test.z > 0) tabletbody.rotation.y = -Math.acos(test.x) - 1.57;
+  	  pickup = 1;
+  	  setTimeout(hudmapjoin,650);
+  	  setTimeout(outcamerarotation,700);
+  	 	
+  	} 
+  	else {
+  		if (returndegree.z < 0) tabletbody.rotation.y = Math.acos(returndegree.x) - 1.57;
+  		else if (returndegree.z > 0) tabletbody.rotation.y = -Math.acos(returndegree.x) - 1.57;
+  		pickup = 0;
+  	  hudmapout();
+  	}
+  
+
+	}
+
+
+	function bpickupcamera(){
+	
+ 	  var test = new THREE.Vector3(0, 0, 0);
+	  camera.getWorldDirection(test);
+	  if (test.z <= 0) tabletbody.rotation.y = Math.acos(test.x) - 1.57;
+	  else if (test.z > 0) tabletbody.rotation.y = -Math.acos(test.x) - 1.57;
+	  pickup = 0;
+	  hudmapout();
+	
+	}	
+	
+
+	function viewpointchange(){
+	    if (viewpoint == 0) {
+	      camera.position.x = 0;
+	      camera.position.z = 10;
+	      camera.position.y = 40;
+	      if(returndegree.x > 5)camera.lookAt(0, 40, -100);
+	      else camera.lookAt(returndegree.x*5000, 40, returndegree.z*5000);
+	      viewpoint = 1;
+	    } 
+	    else if (viewpoint == 1) {
+          camera.getWorldDirection(test);
+          monitorsound.play();
+	      if(test.z < 0.7) camera.getWorldDirection(returndegree);
+	      camera.position.x = 120;
+	      camera.position.z = 100;
+	      camera.position.y = 80;
+	      camera.lookAt(140, 10, -50);
+	      viewpoint = 2;
+	    } 
+	    else if (viewpoint == 2) {
+            monitorsound.play();
+          camera.position.x = -120;
+	      camera.position.z = 100;
+	      camera.position.y = 80;
+	      camera.lookAt(-140, 10, -50);
+	      viewpoint = 0;
+	    }
+
+	}
+
+
+
+
+	function makeboxes(){
+	  var texture = new THREE.TextureLoader().load('https://i.imgur.com/a8bRyAF.png');
+	
+	  var texMat = new THREE.MeshPhongMaterial({
+	    map: texture
+	  });
+	
+	  var geometry = new THREE.BoxGeometry(20,20,20);
+	  
+	  //////right side
+	  
+	  var box = new THREE.Mesh(geometry, texMat);
+	  scene.add(box);	
+	  box.position.set(180,10,10);
+	  box.rotation.y += 0.35;
+	  var box2 = new THREE.Mesh(geometry, texMat);	
+	  scene.add(box2);
+	  box2.position.set(175,10,-15);
+	  box2.rotation.y -= 0.65;
+	  var box3 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box3);
+	  box3.position.set(183,30,-5);
+	  box3.rotation.y -= 0.25;
+	  
+	  var box4 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box4);
+	  box4.position.set(130,10,-95);
+	  box4.rotation.y -= 0.25;
+	  var box5 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box5);
+	  box5.position.set(118,10,-70);
+	  box5.rotation.y -= 0.75;
+	  var box6 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box6);
+	  box6.position.set(119,30,-83);
+	  box6.rotation.y -= 0.55;
+  
+  
+	  ////left side
+	  
+	  var box21 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box21);
+	  box21.position.set(-180,10,10);
+	  box21.rotation.y += 0.35;
+	  var box22 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box22);
+	  box22.position.set(-177,10,-15);
+	  box22.rotation.y += 0.01;
+	  var box23 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box23);
+	  box23.position.set(-179,30,-17);
+	  box23.rotation.y -= 0.35;
+	  
+	  
+	  var box24 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box24);
+	  box24.position.set(-118,10,-90);
+	  box24.rotation.y += 0.35;
+	  var box25 = new THREE.Mesh(geometry, texMat);
+	  scene.add(box25);
+	  box25.position.set(-118,30,-90);
+	  box25.rotation.y -= 0.25;
+
+  
+	}
+
+
+
+
+
+
+
+	function makehudmap() {
+	  var loader = new THREE.TextureLoader();
+	  loader.setCrossOrigin('');
+	  tex = loader.load('https://i.imgur.com/beiOFVd.png');
+	  alpha = loader.load('https://i.imgur.com/fHimchV.png')
+	  hudmap = new THREE.Mesh(new THREE.PlaneGeometry(7, 10), new THREE.MeshBasicMaterial({
+	    map: tex,
+	    alphaMap:alpha,
+	    transparent: true,
+	    side: THREE.DoubleSide
+	  }));
+	
+	  hudmap.position.y = 1e-2;
+	  sceneHUD.add(hudmap);
+	  hudmap.position.set(1000,0,0);
+	  //hudmap.position.set(6.5, -2, 100)
+	  
+	
+	}
+
+
+
+	function hudmapjoin(){
+	  hudmap.position.set(6.5, -2, 100);
+	}
+
+	function hudmapout(){
+	  hudmap.position.set(1000,0,0);
+	}
+
+	function outcamerarotation(){
+	  var test2 = new THREE.Vector3(0, 0, 0);
+	  camera.getWorldDirection(test2);
+	  if(viewpoint == 2 && test2.x > 0.5) outcameraflag = 1;
+	  if(viewpoint == 2 && test2.x < 0.12) outcameraflag = 0;
+	  if(viewpoint == 2 && outcameraflag == 0){
+	    setTimeout(outcamerarotation,20);
+	    camera.rotation.y -= 0.001
+	    camera.rotation.x -= 0.0007
+	    camera.rotation.z -= 0.0005
+	  }
+	  else if(viewpoint == 2 && outcameraflag == 1){
+	  setTimeout(outcamerarotation,20);
+		camera.rotation.y += 0.001
+	  camera.rotation.x += 0.0007
+	  camera.rotation.z += 0.0005
+	  }
+	  ///////////////////////////LEFT
+	  
+	  if(viewpoint == 0 && test2.x < -0.5) outcameraflag = 1;
+	  if(viewpoint == 0 && test2.x > -0.12) outcameraflag = 0;
+	  if(viewpoint == 0 && outcameraflag == 0){
+	    setTimeout(outcamerarotation,20);
+	    camera.rotation.y += 0.001
+	    camera.rotation.x -= 0.0007
+	    camera.rotation.z += 0.0005
+	  }
+	  else if(viewpoint == 0 && outcameraflag == 1){
+	    setTimeout(outcamerarotation,20);
+	    camera.rotation.y -= 0.001
+	    camera.rotation.x += 0.0007
+	    camera.rotation.z -= 0.0005
+	  }
+	
+	}
+
+	function makemapbuttom() {
+	  var loader = new THREE.TextureLoader();
+	  loader.setCrossOrigin('');
+	  tex = loader.load('https://i.imgur.com/beiOFVd.png');
+	  alpha = loader.load('https://i.imgur.com/7t0jeMt.png')
+	  var rightmapbuttom = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1), new THREE.MeshBasicMaterial({
+	    map: tex,
+	    alphaMap:alpha,
+	    transparent: true,
+	    side: THREE.DoubleSide
+	  }));
+	  
+	  sceneHUD.add(rightmapbuttom);
+	
+	  rightmapbuttom.position.y = 1e-2;
+	  rightmapbuttom.position.set(8.6, -3.1, 90);
+	  
+	  rightmappickables.push(rightmapbuttom);
+	
+	  document.addEventListener('mousedown', rightmappick, false);
+	  
+	  
+	  var loader = new THREE.TextureLoader();
+	  loader.setCrossOrigin('');
+	  tex = loader.load('https://i.imgur.com/beiOFVd.png');
+	  alpha = loader.load('https://i.imgur.com/7t0jeMt.png')
+	  var leftmapbuttom = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1), new THREE.MeshBasicMaterial({
+	    map: tex,
+	    alphaMap:alpha,
+	    transparent: true,
+	    side: THREE.DoubleSide
+	  }));
+	  
+	  sceneHUD.add(leftmapbuttom);
+	  leftmapbuttom.position.set(4.1, -3.12, 90);
+	  
+	  leftmappickables.push(leftmapbuttom);
+	
+	  document.addEventListener('mousedown', leftmappick, false);
+	
+	}
+	
+	function rightmappick(event) {
+	  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+	  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+	
+	  raycaster.setFromCamera(mouse, cameraHUD);
+	  var intersects = raycaster.intersectObjects(rightmappickables, false);
+	  if (intersects.length > 0) {
+	    if(viewpoint != 2){
+          switchcondition2();
+          monitorsound.play();
+	    }
+	  }
+	}
+
+	function leftmappick(event) {
+	  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+	  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+	
+	  raycaster.setFromCamera(mouse, cameraHUD);
+	  var intersects = raycaster.intersectObjects(leftmappickables, false);
+	  if (intersects.length > 0) {
+	    if(viewpoint != 0){
+           switchcondition3();
+           monitorsound.play();
+	    }
+	  }
+	}
+	
+	
+	function startgame(event) {
+	  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+	  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+	
+	  raycaster.setFromCamera(mouse, cameraHUD);
+	  var intersects = raycaster.intersectObjects(startpickables, false);
+	  if (intersects.length > 0) {
+		starttext.position.set(100,0,0);
+		startbuttom.position.set(100,0,0);
+	  	viewpoint = 0;
+	    viewpointchange();
+        lightstate1 = 0;
+        gamestart = true;
+		usagetext.position.set(-6.2,-6.5,100);
+		timetext.position.set(7.2,8.5,100);
+		powertext.position.set(-5.5,-5.5,100);
+		camerabuttom.position.set(0, -8.5, 100);
+		power = 360;
+		usage = 1;
+		Time = new THREE.Clock();
+	  }
+	}
+
+
+
+
+	function onWindowResize() {
+	  camera.aspect = window.innerWidth / window.innerHeight;
+	  camera.updateProjectionMatrix();
+	  renderer.setSize(window.innerWidth, window.innerHeight);
+	}
+	
+    </script>

@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #info {
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            padding: 10px;
+            text-align: center;
+            color: #ffff00
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/107/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://raw.githack.com/jyunming-chen/tutsplus/master/js/text2D.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/r16/Stats.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+	 
+	
+    <div id = "info"> 
+        <button id="play" style="width:15%">change camera</button> 
+    </div>
+	
+
+	
+    <audio id="doorsound" style="display: none;">
+        <source src="yisellsound.mp3" type="audio/mp3">
+    </audio>
+    <audio id="doorsound2" style="display: none">
+        <source src="refrigerater1_C.mp3" type="audio/mp3">
+    </audio>
+    <audio id="Vent" style="display: none">
+        <source src="Ventsound.mp3" type="audio/mp3">
+    </audio>
+    <audio id="lightsound" loop style="display: none">
+        <source src="elesound.mp3" type="audio/mp3">
+    </audio>
+    <audio id="lightsound2" loop style="display: none">
+        <source src="elesound.mp3" type="audio/mp3">
+    </audio>
+    <audio id="lightsound3" loop style="display: none">
+        <source src="elesound.mp3" type="audio/mp3">
+    </audio>
+    <audio id="change" style="display: none">
+        <source src="changesound.mp3" type="audio/mp3">
+    </audio>
+    
+    <script>
+        var camera, scene, renderer, cameraHUD;
+        var leftdoor,rightdoor,windowdoor;
+        var wallheight = 60 ,windowsize = 40;
+        var lightstate1 = 0, lightstate2 = 0, lightstate3 = 0; 
+        var light1, light2, light3;
+        var rightwallstate = 1, leftwallstate = 1, windowdoorstate = 1;
+        var mouse = new THREE.Vector2();
+        var raycaster = new THREE.Raycaster();
+        var rightlightpickables = [] , leftlightpickables = [] , rightdoorpickables = [] , leftdoorpickables = [], windowdoorpickables = [], windowlightpickables = [], HUDrightlightpickables = [];
+        var rotationy = 0 , viewpoint = 1;
+        var Time, usage = 1 ,power = 1000;
+        var roomlight;
+        var quickswitch = 0 , switchflag = 0;
+        var test = new THREE.Vector3(0,0,0);
+        
+		var controls, stats, clock, ghost, gui, isPaused = true, t = 0, gControl, steps, BPM = 142, keys = [], move;//鬼
+		
+
+        //change camera
+        $('#play').click ( function() {
+        if(viewpoint == 0){
+            changesound.pause();
+            changesound.play();
+            camera.position.x = 0;
+            camera.position.z = 0;
+            camera.position.y = 40;
+            camera.lookAt(0,40,-100);
+            viewpoint = 1;
+            quickswitch = 0;
+        }
+        else if(viewpoint == 1){
+            changesound.pause();
+            changesound.play();    
+            camera.position.x = 120;
+            camera.position.z = 100;
+            camera.position.y = 80;
+            camera.lookAt(140,10,-50);
+            viewpoint = 2;
+            quickswitch = 0;
+        }
+        else if(viewpoint == 2){
+            changesound.pause();
+            changesound.play();
+            camera.position.x = -120;
+            camera.position.z = 100;
+            camera.position.y = 80;
+            camera.lookAt(-140,10,-50);
+            viewpoint = 0;
+            quickswitch = 0;
+        }
+        });
+        
+		/*$('#play').click ( function() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                $('#play').text ('Play');
+                clock.stop();
+            } else {
+                $('#play').text ('Pause');
+                clock.start();
+            }
+        });*/
+
+        class Ghost{
+            constructor(gg,texture) {
+                this.ghost = new THREE.Object3D();
+                
+				this.body = new THREE.Object3D();
+                this.body.position.set(0,45,0);
+                this.body.add(new THREE.Mesh(new THREE.CylinderGeometry(10, 12, 10, 10),new THREE.MeshPhongMaterial({map:texture,color:'#69523f'}),gg));
+				
+				this.body2= new THREE.Mesh(new THREE.CylinderGeometry(12, 12, 12, 10),new THREE.MeshPhongMaterial({map:texture,color:'#69523f'}),gg);
+				this.body2.position.set(0,-10,0);
+				
+				this.body3= new THREE.Mesh(new THREE.CylinderGeometry(12, 10, 8, 10),new THREE.MeshPhongMaterial({map:texture,color:'#69523f'}),gg);
+				this.body3.position.set(0,-20,0);
+				
+
+                this.head = new THREE.Mesh(new THREE.SphereGeometry(12, 24, 32, 1, 6.3, 0, 3.1),gg);
+				this.head.position.set(0,15,0);
+				this.head.rotation.y=-18;
+
+				this.eye1 = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 6, 8), new THREE.MeshBasicMaterial ({color:'red'}),gg);
+                this.eye1.position.set(6.8,20,9);
+				this.eye1.rotation.x=20.5;
+				
+				this.eye2 = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 6, 8),new THREE.MeshBasicMaterial ({color:'red'}),gg);
+                this.eye2.position.set(-6,20,9);
+				this.eye2.rotation.x=20.5;
+				
+				this.eye3 = new THREE.Mesh(new THREE.CylinderGeometry(3, 2, 6, 8),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.eye3.position.set(6.8,20,8);
+				this.eye3.rotation.x=20.5;
+				
+				this.eye4 = new THREE.Mesh(new THREE.CylinderGeometry(3, 2, 6, 8),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.eye4.position.set(-6,20,8);
+				this.eye4.rotation.x=20.5;
+				
+				
+				this.hat1 = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 5, 8),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg); 
+				this.hat1.position.set(0,30,0);
+				//this.hat1.rotation.x=20.5;		
+				
+				this.hat2 = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 1, 8),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.hat2.position.set(0,27.5,0);
+				
+				
+				
+				
+				
+				
+				this.ear1 = new THREE.Mesh(new THREE.SphereGeometry( 5, 32, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.ear1.position.set(12,24,1);
+				this.ear1.rotation.z=14.5;
+				
+				this.ear2 = new THREE.Mesh(new THREE.SphereGeometry( 5, 32, 32 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.ear2.position.set(-12,24,1);
+				this.ear2.rotation.z-=14.5;
+				
+				this.nose = new THREE.Mesh(new THREE.TetrahedronGeometry(2, 0),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}));
+				this.nose.position.set(1,16,15);
+				this.nose.rotation.y=10.3;
+				
+				
+				
+				
+				
+				this.lip= new THREE.Mesh(new THREE.BoxGeometry( 10, 3, 6 ),new THREE.MeshPhongMaterial({map:texture,color:'#ebcc86'}));
+				this.lip.position.set(1,15,12);
+				
+				this.lip2= new THREE.Mesh(new THREE.BoxGeometry( 10, 3, 6 ),new THREE.MeshPhongMaterial({map:texture,color:'#ebcc86'}));
+				this.lip2.position.set(1,9,11);
+				
+				this.foot= new THREE.Mesh(new THREE.BoxGeometry( 10, 3, 6 ),gg);
+				this.foot.position.set(1,9,11);
+				
+				
+				this.teeth= new THREE.Mesh(new THREE.BoxGeometry( 2, 1, 1 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.teeth.position.set(4,-1.5,2.5);
+				
+				this.teeth2= new THREE.Mesh(new THREE.BoxGeometry( 2, 1, 1 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.teeth2.position.set(1.3,-1.5,2.5);
+				
+				this.teeth3= new THREE.Mesh(new THREE.BoxGeometry( 2, 1, 1 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.teeth3.position.set(-1.3,-1.5,2.5);
+				
+				this.teeth4= new THREE.Mesh(new THREE.BoxGeometry( 2, 1, 1 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.teeth4.position.set(-4,-1.5,2.5);
+				
+				
+				this.teeth5= new THREE.Mesh(new THREE.BoxGeometry( 2, 1, 1 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.teeth5.position.set(4,1.5,2.5);
+				
+				this.teeth6= new THREE.Mesh(new THREE.BoxGeometry( 2, 1, 1 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.teeth6.position.set(1.3,1.5,2.5);
+				
+				this.teeth7= new THREE.Mesh(new THREE.BoxGeometry( 2, 1, 1 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.teeth7.position.set(-1.3,1.5,2.5);
+				
+				this.teeth8= new THREE.Mesh(new THREE.BoxGeometry( 2, 1, 1 ),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+				this.teeth8.position.set(-4,1.5,2.5);
+				
+				
+				this.finger = new THREE.Mesh(new THREE.CylinderGeometry(2, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.finger.position.set(-4,-15,1.5);
+				
+				this.finger2 = new THREE.Mesh(new THREE.CylinderGeometry(2, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.finger2.position.set(1,-15,-4);
+
+                this.finger3 = new THREE.Mesh(new THREE.CylinderGeometry(2, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.finger3.position.set(4,-15,0);
+				
+				this.finger4 = new THREE.Mesh(new THREE.CylinderGeometry(2, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.finger4.position.set(1,-15,4);
+				
+				
+				this.finger5 = new THREE.Mesh(new THREE.CylinderGeometry(2, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.finger5.position.set(4,-15,1.5);
+				
+				this.finger6 = new THREE.Mesh(new THREE.CylinderGeometry(2, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.finger6.position.set(-1,-15,-4);
+
+                this.finger7 = new THREE.Mesh(new THREE.CylinderGeometry(2, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.finger7.position.set(-4,-15,0);
+				
+				this.finger8 = new THREE.Mesh(new THREE.CylinderGeometry(2, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#2d3138'}),gg);
+                this.finger8.position.set(-1,-15,4);
+				
+				
+				
+				
+				this.rightLeg = new THREE.Object3D();
+                this.rightLeg.position.set(-4.5,-22,0);
+
+                let rightLegMesh = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 13, 32),gg);
+                rightLegMesh.position.set(0,-5.0,0);
+                this.rightLeg.add(rightLegMesh);
+			////////////////////////////////////////////////////
+				this.rightLeg2 = new THREE.Object3D();
+                this.rightLeg2.position.set(0,-13.0,0);
+
+                let rightLegMesh2 = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 13, 32),gg);
+                rightLegMesh2.position.set(0,-5.0,0);
+                this.rightLeg2.add(rightLegMesh2);
+
+
+
+
+                this.leftLeg = new THREE.Object3D();
+                this.leftLeg.position.set(4.5,-22,0);
+
+                let leftLegMesh = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 13, 32),gg);
+                leftLegMesh.position.set(0,-5.0,0);
+                this.leftLeg.add(leftLegMesh);
+			/////////////////////////////////////////////////////
+                this.leftLeg2 = new THREE.Object3D();
+                this.leftLeg2.position.set(0,-13.0,0);
+
+                let leftLegMesh2 = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 13, 32),gg);
+                leftLegMesh2.position.set(0,-5.0,0);
+                this.leftLeg2.add(leftLegMesh2);
+				
+				
+
+
+			    this.leftHand = new THREE.Object3D();
+                this.leftHand.position.set(12,5,0);
+
+                let leftHandMesh = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 4.5, 13, 32),new THREE.MeshPhongMaterial({map:texture,color:'#69523f'}),gg);
+                //leftHandMesh.position.set(0,0,0);
+                this.leftHand.add(leftHandMesh);
+			/////////////////////////////////////////////////////
+				this.leftHand2 = new THREE.Object3D();
+                this.leftHand2.position.set(0,-6.5,0);
+
+                let leftHandMesh2 = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 5, 13, 32),gg);
+                leftHandMesh2.position.set(0,-6.5,0);
+                this.leftHand2.add(leftHandMesh2);
+				
+				
+				
+		
+		
+				this.rightHand = new THREE.Object3D();
+                this.rightHand.position.set(-12,5,0);
+
+                let rightHandMesh = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 4.5, 13, 32),new THREE.MeshPhongMaterial({map:texture,color:'#69523f'}),gg);
+                //rightHandMesh.position.set(0,0,0);
+                this.rightHand.add(rightHandMesh);
+				//////////////////////////////////////////////////
+				this.rightHand2 = new THREE.Object3D();
+                this.rightHand2.position.set(0,-6.5,0);
+
+                let rightHandMesh2 = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 5, 13, 32),gg);
+                rightHandMesh2.position.set(0,-6.5,0);
+                this.rightHand2.add(rightHandMesh2);
+
+                this.body.add(this.head,this.hat1,this.hat2,this.eye3,this.eye4, this.rightLeg,this.rightLeg2, this.leftLeg,this.leftLeg2, this.leftHand,this.leftHand2, this.rightHand, this.rightHand2, this.ear1, this.ear2,this.finger,this.finger2,this.finger3,this.finger4,this.finger5, this.finger6, this.finger7, this.finger8,this.body2,this.body3,this.lip,this.lip2,this.teeth,this.eye1,this.eye2,this.nose);
+                this.leftHand.add(this.leftHand2);
+				this.rightHand.add(this.rightHand2);
+				this.leftLeg.add(this.leftLeg2);
+				this.rightLeg.add(this.rightLeg2);
+				this.ghost.add(this.body);
+				
+				
+				this.leftHand2.add(this.finger, this.finger2, this.finger3, this.finger4);
+				this.rightHand2.add(this.finger5, this.finger6, this.finger7, this.finger8);
+				
+				this.lip.add(this.teeth,this.teeth2,this.teeth3,this.teeth4);
+				this.lip2.add(this.teeth5,this.teeth6,this.teeth7,this.teeth8);
+
+                scene.add(this.ghost);
+            }
+        }
+		
+	
+		
+        init();
+        animate();
+        
+        function init() {
+            
+			scene = new THREE.Scene();
+            clock = new THREE.Clock();
+            stats = new Stats();
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.top = '0px';
+            stats.domElement.style.zIndex = 100;
+            document.body.appendChild(stats.domElement);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x888888);
+            document.body.appendChild(renderer.domElement);
+
+			var texture = new THREE.TextureLoader().load( "https://i.imgur.com/8Pq95JY.jpg" );
+			texture.wrapS = THREE.RepeatWrapping;
+			texture.wrapT = THREE.RepeatWrapping;
+			texture.repeat.set( 4, 4 );
+			
+			var mesh = new THREE.MeshPhongMaterial({map:texture,color:'#69523f',side: THREE.DoubleSide}); 
+
+            ghost = new Ghost(mesh,texture);
+
+
+
+
+			camera = new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,1,5000);
+            camera.position.set(0,150,250);
+			
+			
+	
+            //controls = new THREE.OrbitControls(camera, renderer.domElement);
+            //controls.enableKeys = false;
+
+		
+
+
+
+            ghost.ghost.position.set(-145,0,-45);
+            buildMove = function(){
+                this.bodyRotate = 0.001;
+                this.bodyHeight = 0.001;
+                this.bodyRotateY= 0.000;
+				
+				this.lip2=8.67;
+                
+				
+				this.rightHandX = 0.001;
+                this.rightHandZ = 0.001;
+				//////////////////////////
+				this.rightHand2X = 0.001;
+                this.rightHand2Z = 0.001;
+                
+				this.leftHandX = 0.001;
+                this.leftHandZ = 0.001;
+                //////////////////////////
+				this.leftHand2X = 0.001;
+                this.leftHand2Z = 0.001;
+				
+				this.rightLegX = 0.001;
+                this.rightLegZ = 0.001;
+				//////////////////////////
+				this.rightLeg2X = 0.001;
+                this.rightLeg2Z = 0.001;
+                
+				this.leftLegX = 0.001;
+                this.leftLegZ = 0.001;
+				//////////////////////////
+				this.leftLeg2X = 0.001;
+                this.leftLeg2Z = 0.001;
+            };
+            
+            gControl = new buildMove();
+            move = new buildMove();
+
+            gui = new dat.GUI({load: loadJSON(), preset: 'Default'});
+            gui.remember(gControl);
+            gui.add(gControl,'bodyRotate',-Math.PI / 2,Math.PI / 2);
+            gui.add(gControl,'bodyHeight',0.0,25.0);
+            gui.add(gControl,'bodyRotateY',-Math.PI / 2,Math.PI / 2);
+			
+			gui.add(gControl,'lip2',0.0,25.0);
+            
+			
+			gui.add(gControl,'rightHandX',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'rightHandZ',-Math.PI * 2 / 3,1);
+			///////////////////////////////////////////////////////////
+			gui.add(gControl,'rightHand2X',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'rightHand2Z',-Math.PI * 2 / 3,1);
+            
+			gui.add(gControl,'leftHandX',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'leftHandZ',0,Math.PI * 2 / 3);
+			///////////////////////////////////////////////////////////
+			gui.add(gControl,'leftHand2X',-Math.PI / 2,Math.PI / 2);
+            gui.add(gControl,'leftHand2Z',-Math.PI / 4,Math.PI / 4);
+            
+			gui.add(gControl,'rightLegX',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'rightLegZ',-Math.PI * 2 / 3,1);
+			///////////////////////////////////////////////////////////
+			gui.add(gControl,'rightLeg2X',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'rightLeg2Z',-Math.PI * 2 / 3,1);
+            
+			gui.add(gControl,'leftLegX',-Math.PI * 2 / 3,Math.PI * 2 / 3);
+            gui.add(gControl,'leftLegZ',0,Math.PI * 2 / 3);
+			///////////////////////////////////////////////////////////
+			gui.add(gControl,'leftLeg2X',-Math.PI / 2,Math.PI / 2);
+            gui.add(gControl,'leftLeg2Z',-Math.PI / 4,Math.PI / 4);
+
+            let step = loadJSON();
+            steps = [step.remembered.Step0["0"],step.remembered.Step1["0"],step.remembered.Step2["0"],
+                step.remembered.Step3["0"],step.remembered.Step4["0"],step.remembered.Step5["0"],step.remembered.Step6["0"]];
+
+            keys[0] = 0.0;
+            keys[1] = 1 / 8;
+            keys[2] = 2 / 8;
+            keys[3] = 3 / 8;
+            keys[4] = 4 / 8;
+            keys[5] = 6 / 8;
+            keys[6] = 1.0;
+        ///////////////////////////////////////////////////////////////////
+		
+		doorsound = document.getElementById("doorsound");
+        doorsound2 = document.getElementById("doorsound2");
+        ventsound = document.getElementById("Vent");
+        leftlightsound = document.getElementById("lightsound");
+        leftlightsound.volume = 0.2;
+        rightlightsound = document.getElementById("lightsound2");
+        rightlightsound.volume = 0.2;
+        windowlightsound = document.getElementById("lightsound3");
+        windowlightsound.volume = 0.2;
+
+        changesound = document.getElementById("change");
+
+
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.z = 10;
+        camera.position.y = 40;
+        
+        cameraHUD = new THREE.OrthographicCamera(-10, 10, 10, -10, -10, 1600);
+        cameraHUD.position.z = 1580;
+        
+        sceneHUD = new THREE.Scene();
+        //camera.lookAt(0,200,-100);
+        //////////////////OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOrbit here////////////////////////////////////
+        //let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        ////////////////////////////////////////////////////////////////
+        //var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+        //scene.add(gridXZ);
+        
+        
+        ///////////////////////////////////////////////////////  floor
+        let loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        texture = loader.load('https://i.imgur.com/DrvlmNW.jpg');
+        alpha = loader.load('https://i.imgur.com/pYpcBHY.png');
+        var texMat = new THREE.MeshPhongMaterial({
+            map: texture,
+            //alphaMap: alpha,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        
+        
+        var geometry = new THREE.PlaneGeometry( 205, 205, 32 );
+            var plane = new THREE.Mesh( geometry, texMat );
+            scene.add( plane );
+        plane.rotation.x = Math.PI/2;
+        /////////////////////////////////////////   light
+        roomlight = new THREE.PointLight(0xffffff, 1 , 200);
+        roomlight.position.set(0, 50, 0);
+        scene.add(roomlight);
+        /////right light
+        light1 = new THREE.PointLight(0xffffff, 1 , 1);
+        light1.position.set(150, 50, -20);
+        scene.add(light1);
+        
+        light11 = new THREE.PointLight(0xffffff, 1 , 1);
+        light11.position.set(150, 50, -140);
+        scene.add(light11);
+        /////left light
+        light2 = new THREE.PointLight(0xffffff, 1 , 1);
+        light2.position.set(-150, 50, -20);
+        scene.add(light2);
+        
+        light21 = new THREE.PointLight(0xffffff, 1 , 1);
+        light21.position.set(-150, 50, -140);
+        scene.add(light21);
+
+        /////window light
+        light3 = new THREE.PointLight(0xffffff, 1 , 1);
+        light3.position.set(0, wallheight + windowsize/2 + windowsize/2 - 6 , 100 + 25/2 + 5);
+        scene.add(light3);
+        
+        /////////////////////////////////////////////////////////////////
+        /*var testlight = new THREE.PointLight(0xffffff, 1 , 2000);
+        testlight.position.set(0, 50, 200);
+        scene.add(testlight);*/
+        
+        
+        
+        var geometry = new THREE.BoxGeometry(200, wallheight ,5);
+            var material = new THREE.MeshPhongMaterial( {color: 0x5c4332, side: THREE.DoubleSide} );
+            var initwall1 = new THREE.Mesh( geometry, material );
+            scene.add( initwall1 );
+        initwall1.position.set(0,wallheight/2,100);
+            var initwall2 = new THREE.Mesh( geometry, material );
+            scene.add( initwall2 );
+        initwall2.position.set(0,wallheight/2,-100);
+
+        // set door size
+        var doorsize = 30;
+        makewall(doorsize,wallheight);
+        openrightdoor();
+        openleftdoor();
+        
+        var tablesize = 5;
+        // set table size     two constant to set position
+        maketable(tablesize , 0, -40);
+        
+        ///var windowsize = 40;
+        makewindow(wallheight, windowsize);
+        openwindowdoor();
+        
+        makebuttoms(wallheight,doorsize);
+        
+        ////view point
+        document.addEventListener('mousemove', onDocumentMouseMove, false);
+            //set camera to look front
+        camera.lookAt(0,40,-100);
+        
+            ///////////////////////////OOOOOOOOOOOOOOOOOOOOOO IT'S HUD
+        makehud();
+        
+        /////outside
+        makeoutside();
+        
+        Time = new THREE.Clock();
+        
+        
+        renderer.autoClear = false;
+        
+        document.addEventListener("keydown", onDocumentKeyDown, false);
+
+        }
+
+        function animate() {
+		
+		    stats.update();
+			
+            if(isPaused) {
+                ghost.ghost.rotation.x = gControl.bodyRotate;
+                ghost.ghost.position.y = gControl.bodyHeight;
+                ghost.ghost.rotation.y = gControl.bodyRotateY;
+				
+				ghost.lip2.position.y = gControl.lip2;
+				
+				
+				ghost.leftLeg.rotation.x = gControl.leftLegX;
+                ghost.leftLeg.rotation.z = gControl.leftLegZ;
+				///////////////////////////////////////////////
+				ghost.leftLeg2.rotation.x = gControl.leftLeg2X;
+                ghost.leftLeg2.rotation.z = gControl.leftLeg2Z;
+               
+			    ghost.rightLeg.rotation.x = gControl.rightLegX;
+                ghost.rightLeg.rotation.z = gControl.rightLegZ;
+				///////////////////////////////////////////////
+				ghost.rightLeg2.rotation.x = gControl.rightLeg2X;
+                ghost.rightLeg2.rotation.z = gControl.rightLeg2Z;
+               
+			    ghost.leftHand.rotation.x = gControl.leftHandX;
+                ghost.leftHand.rotation.z = gControl.leftHandZ;
+				///////////////////////////////////////////////
+				ghost.leftHand2.rotation.x = gControl.leftHand2X;
+                ghost.leftHand2.rotation.z = gControl.leftHand2Z;
+               
+			    ghost.rightHand.rotation.x = gControl.rightHandX;
+                ghost.rightHand.rotation.z = gControl.rightHandZ;
+				////////////////////////////////////////////////
+				ghost.rightHand2.rotation.x = gControl.rightHand2X;
+                ghost.rightHand2.rotation.z = gControl.rightHand2Z;
+           
+		   }
+            else {
+                t += clock.getDelta();
+                t %= 30.6;
+                keyframe(t);
+
+                ghost.ghost.rotation.x = move.bodyRotate;
+                ghost.ghost.position.y = move.bodyHeight;
+                
+				
+				ghost.lip2.position.y = move.lip2;
+				
+				ghost.leftLeg.rotation.x = move.leftLegX;
+                ghost.leftLeg.rotation.z = move.leftLegZ;
+				///////////////////////////////////////////////////
+				ghost.leftLeg2.rotation.x = move.leftLeg2X;
+                ghost.leftLeg2.rotation.z = move.leftLeg2Z;
+                
+				ghost.rightLeg.rotation.x = move.rightLegX;
+                ghost.rightLeg.rotation.z = move.rightLegZ;
+				///////////////////////////////////////////////////
+				ghost.rightLeg2.rotation.x = move.rightLeg2X;
+                ghost.rightLeg2.rotation.z = move.rightLeg2Z;
+                
+				ghost.leftHand.rotation.x = move.leftHandX;
+                ghost.leftHand.rotation.z = move.leftHandZ;
+				///////////////////////////////////////////////////
+				ghost.leftHand2.rotation.x = move.leftHand2X;
+                ghost.leftHand2.rotation.z = move.leftHand2Z;
+               
+			    ghost.rightHand.rotation.x = move.rightHandX;
+                ghost.rightHand.rotation.z = move.rightHandZ;
+				///////////////////////////////////////////////////
+				ghost.rightHand2.rotation.x = move.rightHand2X;
+                ghost.rightHand2.rotation.z = move.rightHand2Z;
+           
+		   }
+		///////////////////////////////////////////////////////////////////////
+		
+        requestAnimationFrame(animate);
+        render();
+        camerarotation(rotationy);
+        powerleftandtime(usage,Time.getDelta())
+        windowflashing();
+        rightflashing();
+        leftflashing();
+            countusage();
+        }
+
+        function render() {
+            renderer.clear(true);
+            renderer.render(scene, camera);
+            renderer.render(sceneHUD, cameraHUD);
+        }
+
+        
+		function keyframe(t) {
+            if(t >= 1.341 && t <= 30.0){
+                var s = ((t - 1.341) % (60 / BPM * 8)) / (60 / BPM * 8);
+
+                for(var i = 1; i < keys.length; i++){
+                    if(keys[i] > s)break;
+                }
+
+                console.log(i);
+
+                var ii = i - 1;
+                if(i === 6)i = 0;
+
+                var a = (s - keys[ii]) / (keys[ii+1] - keys[ii]);
+
+                move.bodyRotate = steps[ii].bodyRotate * (1 - a) + steps[ii + 1].bodyRotate * a;
+                move.bodyHeight = steps[ii].bodyHeight * (1 - a) + steps[ii + 1].bodyHeight * a;
+                
+				move.rightHandX = steps[ii].rightHandX * (1 - a) + steps[ii + 1].rightHandX * a;
+                move.rightHandZ = steps[ii].rightHandZ * (1 - a) + steps[ii + 1].rightHandZ * a;
+				/////////////////////////////////////////////////////////////////////////////////
+				move.rightHand2X = steps[ii].rightHand2X * (1 - a) + steps[ii + 1].rightHand2X * a;
+                move.rightHand2Z = steps[ii].rightHand2Z * (1 - a) + steps[ii + 1].rightHand2Z * a;
+                
+				move.leftHandX = steps[ii].leftHandX * (1 - a) + steps[ii + 1].leftHandX * a;
+                move.leftHandZ = steps[ii].leftHandZ * (1 - a) + steps[ii + 1].leftHandZ * a;
+				////////////////////////////////////////////////////////////////////////////////
+				move.leftHand2X = steps[ii].leftHand2X * (1 - a) + steps[ii + 1].leftHand2X * a;
+                move.leftHand2Z = steps[ii].leftHand2Z * (1 - a) + steps[ii + 1].leftHand2Z * a;
+               
+			    move.rightLegX = steps[ii].rightLegX * (1 - a) + steps[ii + 1].rightLegX * a;
+                move.rightLegZ = steps[ii].rightLegZ * (1 - a) + steps[ii + 1].rightLegZ * a;
+				////////////////////////////////////////////////////////////////////////////////
+				move.rightLeg2X = steps[ii].rightLeg2X * (1 - a) + steps[ii + 1].rightLeg2X * a;
+                move.rightLeg2Z = steps[ii].rightLeg2Z * (1 - a) + steps[ii + 1].rightLeg2Z * a;
+                
+				move.leftLegX = steps[ii].leftLegX * (1 - a) + steps[ii + 1].leftLegX * a;
+                move.leftLegZ = steps[ii].leftLegZ * (1 - a) + steps[ii + 1].leftLegZ * a;
+				////////////////////////////////////////////////////////////////////////////////
+				move.leftLeg2X = steps[ii].leftLeg2X * (1 - a) + steps[ii + 1].leftLeg2X * a;
+                move.leftLeg2Z = steps[ii].leftLeg2Z * (1 - a) + steps[ii + 1].leftLeg2Z * a;
+				
+				move.lip2 = steps[ii].lip2 * (1 - a) + steps[ii + 1].lip2 * a;
+            }
+        }
+
+        function loadJSON() {
+            return {
+                "preset": "Step6",
+                "remembered": {
+                    "Default": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step0": {
+                        "0": {
+							  "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step1": {
+                        "0": {
+                         "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step2": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step3": {
+                        "0": {
+                             "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step4": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step5": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    },
+                    "Step6": {
+                        "0": {
+                            "bodyRotate": 0.001,
+                            "bodyHeight": 0.001,
+                            "rightHandX": 0.001,
+							"rightHand2X": 0.001,
+                            "rightHandZ": 0.001,
+							"rightHand2Z": 0.001,
+                            "leftHandX": 0.001,
+							"leftHand2X": 0.001,
+                            "leftHandZ": 0.001,
+							"leftHand2Z": 0.001,
+                            "rightLegX": 0.001,
+							"rightLeg2X": 0.001,
+                            "rightLegZ": 0.001,
+							"rightLeg2Z": 0.001,
+                            "leftLegX": 0.001,
+							"leftLeg2X": 0.001,
+                            "leftLegZ": 0.001,
+							"leftLeg2Z": 0.001
+                        }
+                    }
+                },
+                "closed": false,
+                "folders": {}
+            }
+        }
+			
+///////////////////////////////////////////////////////////////////////////////		
+		
+		function windowflashing(){
+            
+        if(lightstate3 == 1){
+            windowlightsound.play();
+            if(Time.elapsedTime % 3 < 1){
+            light3.distance = 50;
+            }
+            else if(Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2){
+            light3.distance = 40;
+            }
+            else if(Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3){
+            light3.distance = 50;
+            }
+            else if(Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5){
+            light3.distance = 35;
+            }
+            else if(Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2){
+            light3.distance = 50;
+            }
+            else if(Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3){
+            light3.distance = 40;
+            }
+            else if(Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5){
+            light3.distance = 50;
+            }
+            else if(Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7){
+            light3.distance = 40;
+            }
+            else{
+            light3.distance = 50;
+            }
+        }
+        else {
+            windowlightsound.pause();
+            light3.distance = 1;
+        }
+        
+        }
+
+        function rightflashing(){
+        if(lightstate1 == 1){
+            rightlightsound.play();   
+            light11.distance = 65;
+            
+            if(Time.elapsedTime % 3 < 1){
+            light1.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2){
+            light1.distance = 45;
+            light11.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3){
+            light1.distance = 65;
+            light11.distance = 55;
+            }
+            else if(Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5){
+            light1.distance = 35;
+            light11.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2){
+            light1.distance = 65;
+            light11.distance = 55;
+            }
+            else if(Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3){
+            light1.distance = 45;
+            light11.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5){
+            light1.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7){
+            light1.distance = 45;
+            }
+            else{
+            light1.distance = 65;
+            }
+        }
+        else{
+        rightlightsound.pause();
+        light1.distance = 1;
+        light11.distance = 1;
+        }
+        
+        }
+
+        function leftflashing(){
+            
+        if(lightstate2 == 1){
+            //leftlightsound.play();
+            light21.distance = 65;
+            
+            if(Time.elapsedTime % 3 < 1){
+            light2.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1 && Time.elapsedTime % 5 < 1.2){
+            light2.distance = 45;
+            light21.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1.2 && Time.elapsedTime % 5 < 1.3){
+            light2.distance = 65;
+            light21.distance = 55;
+            }
+            else if(Time.elapsedTime % 5 > 1.3 && Time.elapsedTime % 5 < 1.5){
+            light2.distance = 35;
+            light21.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 1.5 && Time.elapsedTime % 5 < 2){
+            light2.distance = 65;
+            light21.distance = 55;
+            }
+            else if(Time.elapsedTime % 5 > 2 && Time.elapsedTime % 5 < 2.3){
+            light2.distance = 45;
+            light21.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 2.3 && Time.elapsedTime % 5 < 2.5){
+            light2.distance = 65;
+            }
+            else if(Time.elapsedTime % 5 > 2.5 && Time.elapsedTime % 5 < 2.7){
+            light2.distance = 45;
+            }
+            else{
+            light2.distance = 65;
+            }
+        }
+        else{
+        leftlightsound.pause();
+        light2.distance = 1;
+        light21.distance = 1;
+        }
+        }
+
+
+        function maketable(l ,x ,z){
+            let loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        texture = loader.load('https://i.imgur.com/FM8caZz.jpg');
+        alpha = loader.load('https://i.imgur.com/pYpcBHY.png');
+        var texMat = new THREE.MeshPhongMaterial({
+            map: texture,
+            //alphaMap: alpha,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+
+            var material = new THREE.MeshPhongMaterial( {color: 0xffffff, side: THREE.DoubleSide} );
+        
+        var geometry = new THREE.BoxGeometry( 10*l, l, 5*l );
+        var table = new THREE.Mesh( geometry, texMat );
+        scene.add(table);
+        table.position.set(x, 5.5*l, z);
+        
+        var geometry = new THREE.BoxGeometry( l, 5*l, l );
+            //var material = new THREE.MeshNormalMaterial()
+            var cube1 = new THREE.Mesh( geometry, material );
+            scene.add( cube1 );
+        table.add(cube1);
+        cube1.position.set(-8*l/2,-3*l,-3*l/2);
+        var cube2 = new THREE.Mesh( geometry, material );
+            scene.add( cube2 );
+        table.add(cube2);
+        cube2.position.set(-8*l/2,-3*l,3*l/2);
+        var cube3 = new THREE.Mesh( geometry, material );
+            scene.add( cube3 );
+        table.add(cube3);
+        cube3.position.y = 5*l/2;
+        cube3.position.set(8*l/2,-3*l,3*l/2);
+        var cube4 = new THREE.Mesh( geometry, material );
+            scene.add( cube4 );
+        table.add(cube4);
+        cube4.position.set(8*l/2,-3*l,-3*l/2);
+        }
+
+        function makewall(Dsize, wallheight){
+            var geometry = new THREE.BoxGeometry(5, wallheight ,100);
+            var material = new THREE.MeshPhongMaterial( {color: 0x5c4332, side: THREE.DoubleSide} );
+            var rightwall = new THREE.Mesh( geometry, material );
+        scene.add( rightwall );
+        rightwall.position.set(100,wallheight/2,50);
+        var leftwall = new THREE.Mesh( geometry, material );
+        scene.add( leftwall );
+        leftwall.position.set(-100,wallheight/2,50);
+        
+        var geometry = new THREE.BoxGeometry(5, wallheight ,100 - Dsize);
+        var rightwall2 = new THREE.Mesh( geometry, material );
+        scene.add( rightwall2 );
+        rightwall2.position.set(100,wallheight/2,-100 +(100 - Dsize)/2);
+        var leftwall2 = new THREE.Mesh( geometry, material );
+        scene.add( leftwall2 );
+        leftwall2.position.set(-100,wallheight/2,-100 +(100 - Dsize)/2);
+        
+        ///////////////////////////door//////////////////////////
+
+        let loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        texture = loader.load('https://i.imgur.com/awWOSCI.jpg');
+        alpha = loader.load('https://i.imgur.com/awWOSCI.jpg');
+        var texMat = new THREE.MeshPhongMaterial({
+            map: texture,
+            //alphaMap: alpha,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        
+        var geometry = new THREE.BoxGeometry(4.9, wallheight , Dsize);
+        rightdoor = new THREE.Mesh( geometry, texMat );
+        rightdoor.position.set(100,wallheight/2,-1*Dsize/2);
+            scene.add( rightdoor );
+        leftdoor = new THREE.Mesh( geometry, texMat );
+        leftdoor.position.set(-100,wallheight/2,-1*Dsize/2);
+        scene.add( leftdoor );
+        
+        }
+        ///////////////////////////////////////////////////////////////////
+
+        function makewindow(wallheight, windowsize){
+
+            
+        let loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        texture = loader.load('https://i.imgur.com/pzdqvl6.png');
+        alpha = loader.load('https://i.imgur.com/awWOSCI.jpg');
+        var texMat = new THREE.MeshPhongMaterial({
+            map: texture,
+            //alphaMap: alpha,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        var geometry = new THREE.BoxGeometry(windowsize, windowsize ,5);
+            windowdoor = new THREE.Mesh( geometry, texMat );
+            
+        windowdoor.position.set(0,wallheight + windowsize/2,100-0.01)
+        scene.add( windowdoor );
+        
+        
+        ///////////////front walls///////////////////
+
+        var geometry = new THREE.BoxGeometry(200, windowsize + 20,5);
+            var material = new THREE.MeshPhongMaterial( {color: 0x5c4332, side: THREE.DoubleSide} );
+            var walls1 = new THREE.Mesh( geometry, material );
+            scene.add( walls1 );
+        walls1.position.set(0,wallheight + windowsize/2,-100);
+
+        ///////////////right and left walls///////////////////
+
+        var geometry = new THREE.BoxGeometry(5, windowsize + 20 ,200);
+        var walls2 = new THREE.Mesh( geometry, material );
+            scene.add( walls2 );
+        walls2.position.set(100, wallheight + windowsize/2, 0);
+        var walls3 = new THREE.Mesh( geometry, material );
+            scene.add( walls3 );
+        walls3.position.set(-100, wallheight + windowsize/2, 0);
+
+        ///////////////right and left walls///////////////////
+
+        var geometry = new THREE.BoxGeometry((200-windowsize)/2, windowsize ,5);
+        var walls4 = new THREE.Mesh( geometry, material );
+            scene.add( walls4 );
+        walls4.position.set(windowsize/2+(200-windowsize)/2/2, wallheight + windowsize/2, 100);
+        var walls5 = new THREE.Mesh( geometry, material );
+            scene.add( walls5 );
+        walls5.position.set(-(windowsize/2+(200-windowsize)/2/2), wallheight + windowsize/2, 100);
+        
+        
+        
+        var geometry = new THREE.BoxGeometry(2, windowsize ,80);
+        loader.crossOrigin = '';
+        texture = loader.load('https://i.imgur.com/ZUWRF8R.jpg');
+        alpha = loader.load('https://i.imgur.com/awWOSCI.jpg');
+        var texMat = new THREE.MeshPhongMaterial({
+            map: texture,
+            //alphaMap: alpha,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+            var windows1 = new THREE.Mesh( geometry, texMat );
+            scene.add( windows1 );
+            windows1.position.set(windowsize/2 - 1,wallheight + windowsize/2,100 + 40 - 2.5)
+        
+        var windows2 = new THREE.Mesh( geometry, texMat );
+            scene.add( windows2 );
+            windows2.position.set(-windowsize/2 + 1,wallheight + windowsize/2,100 + 40 - 2.5)
+        
+        var geometry = new THREE.BoxGeometry(windowsize - 4, 2 ,40);
+        
+        var windows3 = new THREE.Mesh( geometry, texMat );
+            scene.add( windows3 );
+            windows3.position.set(0 ,wallheight + windowsize/2 + windowsize/2 - 1,100 + 20 - 2.5)
+        
+        var geometry = new THREE.BoxGeometry(windowsize - 4, 2 ,80);
+        
+        var windows4 = new THREE.Mesh( geometry, texMat );
+            scene.add( windows4 );
+            windows4.position.set(0 ,wallheight + windowsize/2 - windowsize/2 + 1,100 + 40 - 2.5)
+        
+        var geometry = new THREE.BoxGeometry(40, 80 ,2);
+        
+        var windows5 = new THREE.Mesh( geometry, texMat );
+            scene.add( windows5 );
+            windows5.position.set(0 ,wallheight + windowsize/2 - windowsize/2 + 40,100 + 80 - 2.5)
+        
+        
+        var geometry = new THREE.BoxGeometry(2, 40 ,40);
+        
+        var windows6 = new THREE.Mesh( geometry, texMat );
+            scene.add( windows6 );
+            windows6.position.set(20 - 1 ,wallheight + windowsize/2 - windowsize/2 + 60,100 + 60 - 2.5)
+        
+        var windows7 = new THREE.Mesh( geometry, texMat );
+            scene.add( windows7 );
+            windows7.position.set(-20 + 1 ,wallheight + windowsize/2 - windowsize/2 + 60,100 + 60 - 2.5)
+        
+        var windowlightbox = new THREE.Mesh (new THREE.BoxGeometry (8,3,25), new THREE.MeshPhongMaterial({color:0xffffff}))
+        scene.add(windowlightbox);
+        windowlightbox.position.set(0 , wallheight + windowsize/2 + windowsize/2 - 3 , 100 + 25/2 + 5)
+        }
+
+        function openrightdoor(){
+            for(var i = 0 ; i < wallheight ; ){
+        rightdoor.position.y += 0.01; 
+        i = i + 0.01;
+        }
+        doorsound.play();
+        }
+
+        function closerightdoor(){
+            for(var i = 0 ; i < wallheight ; ){
+        rightdoor.position.y -= 0.01; 
+        i = i + 0.01;
+        }
+        doorsound2.play();
+        }
+
+        function openleftdoor(){
+            for(var i = 0 ; i < wallheight ; ){
+        leftdoor.position.y += 0.01; 
+        i = i + 0.01;
+        }
+        doorsound.play();
+        }
+
+        function closeleftdoor(){
+            for(var i = 0 ; i < wallheight ; ){
+        leftdoor.position.y -= 0.01; 
+        i = i + 0.01;
+        }
+        doorsound2.play();
+        }
+
+        function openwindowdoor(){
+            for(var i = 0 ; i < windowsize ; ){
+        windowdoor.position.y += 0.01; 
+        i = i + 0.01;
+        }
+        ventsound.pause();
+        ventsound.play();
+        }
+
+        function closewindowdoor(){
+            for(var i = 0 ; i < windowsize ; ){
+        windowdoor.position.y -= 0.01; 
+        i = i + 0.01;
+        }
+        ventsound.pause();
+        ventsound.play();
+        }
+
+        function onDocumentMouseMove(event) {
+
+        event.preventDefault();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        //mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        if(mouse.x > 0.3 && viewpoint == 1)	rotationy = (mouse.x-0.3)*2;
+        else if(mouse.x < -0.3 && viewpoint == 1) rotationy = (mouse.x+0.3)*2;
+        else rotationy = 0;
+            
+
+        }
+
+        function makebuttoms(wallheight,doorsize){
+            /// set door buttom 
+        var geometry = new THREE.BoxGeometry(2, 5 ,5);
+            var material = new THREE.MeshPhongMaterial( {color: 0xff0000, side: THREE.DoubleSide} );
+            var rightdoorbuttom = new THREE.Mesh( geometry, material );
+        scene.add(rightdoorbuttom);
+        rightdoorbuttom.position.set(97,wallheight / 2 + 10 , (-100 +(100 - doorsize))/2 + doorsize / 2 + 10);
+        rightdoorpickables.push(rightdoorbuttom) ;
+        var leftdoorbuttom = new THREE.Mesh( geometry, material );
+        scene.add(leftdoorbuttom);
+        leftdoorbuttom.position.set(-97,wallheight / 2 + 10 , (-100 +(100 - doorsize))/2 + doorsize / 2 + 10);
+        leftdoorpickables.push(leftdoorbuttom);
+        //// door buttom
+        document.addEventListener('mousedown', rightsidedoor, false);
+        document.addEventListener('mousedown', leftsidedoor, false);
+        
+        
+        //window door buttom
+        var geometry = new THREE.BoxGeometry(5, 5 ,2);
+        var windowdoorbuttom = new THREE.Mesh( geometry, material );
+        scene.add(windowdoorbuttom);
+        windowdoorbuttom.position.set(-25 ,wallheight + 10 , 100 - 5);
+        windowdoorpickables.push(windowdoorbuttom) ;
+        
+        document.addEventListener('mousedown', windowsidedoor, false);
+        
+        /// set light buttom
+        var geometry = new THREE.BoxGeometry(2, 5 ,5);
+            var material = new THREE.MeshPhongMaterial( {color: 0xf5f5f5, side: THREE.DoubleSide} );
+            var rightlightbuttom = new THREE.Mesh( geometry, material );
+        scene.add(rightlightbuttom);
+        rightlightbuttom.position.set(97,wallheight / 2 + 3, (-100 +(100 - doorsize))/2 + doorsize / 2 + 10 );
+        rightlightpickables.push(rightlightbuttom);
+        var leftlightbuttom = new THREE.Mesh( geometry, material );
+        scene.add(leftlightbuttom);
+        leftlightbuttom.position.set(-97,wallheight / 2 + 3, (-100 +(100 - doorsize))/2 + doorsize / 2 + 10 );
+        leftlightpickables.push(leftlightbuttom);
+        
+        //// light buttom
+        document.addEventListener('mousedown', rightsidelight, false);
+        document.addEventListener('mousedown', leftsidelight, false);
+        
+        
+        
+        //window light buttom
+        var geometry = new THREE.BoxGeometry(5, 5 ,2);
+        var windowlightbuttom = new THREE.Mesh( geometry, material );
+        scene.add(windowlightbuttom);
+        windowlightbuttom.position.set(-25 ,wallheight + 2.5 , 100 - 5);
+        windowlightpickables.push(windowlightbuttom) ;
+        
+        document.addEventListener('mousedown', windowsidelight, false);
+        
+        }
+
+        function rightsidedoor(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(rightdoorpickables, false);
+        if (intersects.length > 0) {
+            if(rightwallstate == 0){
+                openrightdoor();
+                rightwallstate = 1;
+            }
+            else if(rightwallstate == 1){
+                closerightdoor();
+                rightwallstate = 0;
+            }
+            }
+        }
+
+        function leftsidedoor(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(leftdoorpickables, false);
+        if (intersects.length > 0) {
+            if(leftwallstate == 0){
+            openleftdoor();
+            leftwallstate = 1;
+            }
+            else if(leftwallstate == 1){
+            closeleftdoor();
+            leftwallstate = 0;
+            }
+            }
+        }
+
+        function windowsidedoor(event){
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(windowdoorpickables, false);
+        if (intersects.length > 0) {
+            if(windowdoorstate == 0){
+            openwindowdoor();
+            windowdoorstate = 1;
+            }
+            else if(windowdoorstate == 1){
+            closewindowdoor();
+            windowdoorstate = 0;
+            }
+            }
+        }
+
+        function rightsidelight(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(rightlightpickables, false);
+        if (intersects.length > 0) {
+            //rightlight();
+            if(lightstate1 == 0) lightstate1 = 1;
+            else if(lightstate1 == 1) lightstate1 = 0;
+            }
+        }
+
+        function leftsidelight(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(leftlightpickables, false);
+        if (intersects.length > 0) {
+            //leftlight();
+            if(lightstate2 == 0) lightstate2 = 1;
+            else if(lightstate2 == 1) lightstate2 = 0;
+            }
+        }
+
+        function windowsidelight(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        // find intersections
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(windowlightpickables, false);
+        if (intersects.length > 0) {
+            //windowlight();
+            if(lightstate3 == 0) lightstate3 = 1;
+            else if(lightstate3 == 1) lightstate3 = 0;
+            }
+        }
+
+        function camerarotation(x){
+            if(viewpoint != 1) rotationy = 0;
+        else if(quickswitch == 0) camera.rotation.y -= x/100;
+        else camera.rotation.y += x/100;
+        }
+
+        function makehud(){
+        var Text2D = THREE_Text.MeshText2D;
+        var textAlign = THREE_Text.textAlign;
+        
+        powertext = new Text2D("Power left:"+Math.floor(power/10)+'%', {
+            align: textAlign.center,
+            font: '144px Arial',
+            fillStyle: '#ffffff',
+            antialias: false
+        });
+        powertext.position.set(-5.5, -5.5, 100);
+        powertext.scale.set(0.007, 0.007, 0.007);
+        sceneHUD.add(powertext);
+
+        
+        usagetext = new Text2D("Usage:", {
+            align: textAlign.center,
+            font: '144px Arial',
+            fillStyle: '#ffffff',
+            antialias: false
+        });
+        usagetext.position.set(-6.2, -6.5, 100);
+        usagetext.scale.set(0.007, 0.007, 0.007);
+        sceneHUD.add(usagetext);
+        
+        
+            
+        
+        }
+
+
+
+        function powerleftandtime(usage, timepass){
+            power = power - usage * timepass;
+        powertext.text = 'Power left:'+Math.floor(power/10)+'%'
+        var tmptext = 'Usage:'
+        var i = 0;
+        for(i = 0 ;i < usage ;i++){
+            tmptext += 'I';
+        }
+        for(i = 0 ;i < 8 - usage ;i++){
+            tmptext += ' ';
+        }
+        //console.log(''+usage)
+        usagetext.text = tmptext;
+        //console.log('usage'+usage)
+        //console.log('timepass'+timepass)
+        //console.log('power'+power)
+        }
+
+        function countusage(){
+            if(Math.floor(power/10) > 0) usage = 1;
+        else {
+        usage = 0;
+        return ;
+        }
+            if(lightstate1 == 1) usage += 1;
+        if(lightstate2 == 1) usage += 1;
+        if(lightstate3 == 1) usage += 1;
+        if(rightwallstate == 0) usage += 1;
+        if(leftwallstate == 0) usage += 1;
+        if(windowdoorstate == 0) usage += 1;
+        
+        //console.log(''+usage)
+        }
+
+        function makeoutside(){	
+
+
+            let loader = new THREE.TextureLoader();
+        loader.crossOrigin = '';
+        texture = loader.load('https://i.imgur.com/FM8caZz.jpg');
+        alpha = loader.load('https://i.imgur.com/pYpcBHY.png');
+        var texMat = new THREE.MeshPhongMaterial({
+            map: texture,
+            //alphaMap: alpha,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        
+        var geometry = new THREE.PlaneGeometry( 405, 305, 32 );
+            var corridor = new THREE.Mesh( geometry, texMat );
+            scene.add( corridor );
+        corridor.rotation.x = Math.PI/2;
+        corridor.position.y = -1;
+        corridor.position.z = -50;
+        
+        
+        
+        
+        loader = new THREE.TextureLoader()
+        loader.crossOrigin = '';
+
+        texture = loader.load('https://i.imgur.com/FAH1snx.jpg?1');
+
+            texture.repeat.set(6, 6);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        
+        var outwalls1 = new THREE.Mesh(new THREE.BoxGeometry(10, 300 ,300), 
+        new THREE.MeshPhongMaterial({map: texture}))
+        outwalls1.rotation.x = Math.PI / 2;
+        scene.add(outwalls1);
+        outwalls1.position.set(-200,50,-50)
+        
+        
+        
+
+        var outwalls2 = new THREE.Mesh(new THREE.BoxGeometry(10, 300 ,300), 
+        new THREE.MeshPhongMaterial({map: texture}))
+        outwalls2.rotation.x = Math.PI / 2;
+        scene.add(outwalls2);
+        outwalls2.position.set(200,50,-50)
+        
+        
+        var outwalls3 = new THREE.Mesh(new THREE.BoxGeometry(400, 10 ,100), 
+        new THREE.MeshPhongMaterial({map: texture}))
+        outwalls3.rotation.x = Math.PI / 2;
+        scene.add(outwalls3);
+        outwalls3.position.set(0,50,-200)
+        
+        }
+
+
+        function onDocumentKeyDown(event) {
+            var keyCode = event.which;
+            // 
+            if (keyCode == 76 && viewpoint == 2) {
+                if(lightstate1 == 1) lightstate1 = 0;
+                else if(lightstate1 == 0) lightstate1 = 1;
+            }
+            else if(keyCode == 76 && viewpoint == 0) {
+                if(lightstate2 == 1) lightstate2 = 0;
+                else if(lightstate2 == 0) lightstate2 = 1;
+            }
+            else if(keyCode == 66){
+                if(switchflag == 0){
+                if(viewpoint == 1) switchflag = 1;
+                else if(viewpoint == 2) switchflag = 2;
+                else switchflag = 3;
+                camera.getWorldDirection(test);
+                camera.position.x = 0;
+                camera.position.z = 0;
+                camera.position.y = 40;
+                camera.lookAt(0,40,100);
+                viewpoint = 1;
+                quickswitch = 1;
+                console.log(''+test.z)
+            }
+            else if(switchflag == 1){
+                switchflag = 0;
+                camera.position.x = 0;
+                camera.position.z = 0;
+                camera.position.y = 40;
+                camera.lookAt(test.x,40,test.z)
+                if(test.z > 0) quickswitch = 1;
+                else quickswitch = 0;
+            }
+            else if(switchflag == 2){
+                camera.position.x = 120;
+                camera.position.z = 100;
+                camera.position.y = 80;
+                camera.lookAt(140,10,-50);
+                viewpoint = 2;
+                quickswitch = 0;
+                switchflag = 0;
+            }
+            else{
+                camera.position.x = -120;
+                camera.position.z = 100;
+                camera.position.y = 80;
+                camera.lookAt(-140,10,-50);
+                viewpoint = 0;
+                quickswitch = 0;
+                switchflag = 0;
+            }
+            
+            }
+            
+            render();
+        };
+    </script>

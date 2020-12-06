@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>three.js webaudio - orientation</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <audio loop crossorigin="anonymous" id="walk" preload="auto" style="display: none">
+		<source src="walking_on_a_floor.mp3" type="audio/mpeg">
+    </audio>
+    <div id="overlay">
+		<button id="startButton">Play</button>
+	</div>
+    <script type="module">
+            var startButton = document.getElementById( 'startButton' );
+		    startButton.addEventListener( 'click', init );
+            import * as THREE from 'https://raw.githack.com/mrdoob/three.js/dev/build/three.module.js';
+
+            import { OrbitControls } from 'https://raw.githack.com/mrdoob/three.js/dev/examples/jsm/controls/OrbitControls.js';
+
+            import { PositionalAudioHelper } from 'https://raw.githack.com/mrdoob/three.js/dev/examples/jsm/helpers/PositionalAudioHelper.js';
+
+            var scene, camera, renderer,pos=0,thebox,sound,helper,envir,en;
+
+            function init(){
+
+            var overlay = document.getElementById( 'overlay' );
+			overlay.remove();
+
+            camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 100 );
+            camera.position.set( -20, 3, 0 );
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color( 0xa0a0a0 );
+            //scene.fog = new THREE.Fog( 0xa0a0a0, 2, 20 );
+
+            var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 100, 100 ), new THREE.MeshBasicMaterial( { color: 0xa0a0a0, depthWrite: false } ) );
+            mesh.rotation.x = - Math.PI / 2;
+            mesh.receiveShadow = true;
+            scene.add( mesh );
+
+            var grid = new THREE.GridHelper( 50, 50, 0x888888, 0x888888 );
+            scene.add( grid );
+
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x888888);
+            document.body.appendChild( renderer.domElement );
+
+
+
+            var controls = new OrbitControls(camera, renderer.domElement );
+
+
+            
+            ////// create positionaudio
+            var listener = new THREE.AudioListener();
+            listener.crossOrigin = "anonymous";
+            camera.add(listener);
+
+
+            var audioElement = document.getElementById('walk');
+            audioElement.crossOrigin="anonymous";
+            audioElement.play();
+
+            sound = new THREE.PositionalAudio( listener );
+            sound.setMediaElementSource( audioElement );
+            sound.setRefDistance( 10 );
+            sound.panner.setOrientation(0,0,1);
+            envir=360;
+            en=200;
+            sound.setDirectionalCone( envir, en, 0.1 );
+
+            helper = new PositionalAudioHelper( sound, 5 );
+			sound.add( helper );
+            
+            var box = new THREE.BoxGeometry(2,1,5);
+            thebox = new THREE.Mesh(box,new THREE.MeshNormalMaterial());
+            thebox.rotation.y=Math.PI;
+            
+            var wall = new THREE.BoxGeometry(1,10,10);
+            var thewall = new THREE.Mesh(wall,new THREE.MeshNormalMaterial());
+            thewall.position.set(-4,5,0);
+            scene.add(thewall);
+
+            thebox.add(sound);
+            thebox.rotation.y+=Math.PI;
+            thebox.position.set(3,0,-20);
+            scene.add(thebox);
+
+            animate();
+            }
+            function animate() {
+                pos=0.05;
+                if(thebox.position.z>-10&&thebox.position.z<-5){
+                    envir=90;
+                    en=200;
+                }
+                else if(thebox.position.z>-5&&thebox.position.z<0){
+                    envir=30;
+                    en=50;
+                }
+                else if(thebox.position.z>0&&thebox.position.z<5){
+                    envir=90;
+                    en=50;
+                }
+                else if(thebox.position.z>5&&thebox.position.z<10){
+                    envir=90;
+                    en=200;
+                }
+                else{
+                    envir=360;
+                    en=360;
+                }
+                sound.setDirectionalCone( envir, en, 0.1 );
+                helper.update();
+                thebox.position.z+=pos;
+                requestAnimationFrame( animate );
+                renderer.render( scene, camera );
+
+            }
+
+    </script>
+    
+</body>
+</html>

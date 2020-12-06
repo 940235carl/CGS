@@ -1,0 +1,138 @@
+~<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: #fff;
+            color: #111;
+            margin: 0px;
+            overflow: hidden;
+            font-family: Monospace;
+            font-size: 10px;
+            position: absolute;
+        }
+        #info {
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            padding: 5px;
+            text-align: center;
+            color: #ffff00
+        }
+    </style>
+</head>
+<body>
+    <audio loop crossorigin="anonymous" id="walk" preload="auto" style="display: none">
+		<source src="No Party For Cao Dong [The Specter].mp3" type="audio/mpeg">
+    </audio>
+    <div id="info">Minimal GLSL</div>
+    <script src="https://threejs.org/build/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+        
+
+    <script id="myVertexShader" type="x-shader/x-vertex">
+        uniform vec3 lightpos;  // world coordinate
+            varying vec4 eyepos;
+        
+        void main() {
+                eyepos = modelViewMatrix * vec4 (position, 1.0);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+    <script id="myFragmentShader" type="x-shader/x-fragment">
+        varying vec4 eyepos;
+        uniform float mytime;
+    
+    float rand(vec2 co){
+        return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+    }
+    void main() {
+            float grey = rand (vec2(eyepos.x, mytime));
+            gl_FragColor = vec4(vec3(grey,grey,grey), 1.0);
+        }
+    </script>
+    <script>
+        var scene, renderer, camera;
+        var meshMaterial;
+        var clock = new THREE.Clock();
+        var box;
+        init();
+        animate();
+
+
+        function init() {
+            audioElement = document.getElementById('walk');
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+
+            renderer = new THREE.WebGLRenderer({
+                antialias: true
+            });
+            renderer.setSize(width, height);
+            document.body.appendChild(renderer.domElement);
+            renderer.setClearColor(0x888888);
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
+            camera.position.set (0, 160, 400);
+
+            let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+            var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+            scene.add(gridXZ);
+                /////////////////////////////////////////////////////////////
+            meshMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                lightpos: {type: 'v3', value: new THREE.Vector3()},
+                mytime: {type:'f', value: 1.0}
+            },
+            vertexShader: document.getElementById('myVertexShader').textContent,
+            fragmentShader: document.getElementById('myFragmentShader').textContent
+            });
+
+            //var geometry = new THREE.TorusKnotGeometry(20, 5, 100, 16);
+            var geometry = new THREE.PlaneGeometry (30,30);
+            mesh = new THREE.Mesh(geometry, meshMaterial);
+            scene.add(mesh);
+            
+             ////// create positionaudio
+            var listener = new THREE.AudioListener();
+            listener.crossOrigin = "anonymous";
+            camera.add(listener);
+
+            
+            sound = new THREE.PositionalAudio( listener );
+            sound.setMediaElementSource( audioElement );
+            sound.setRefDistance( 3 );
+            sound.panner.setOrientation(1,0,0);
+            envir=360;
+            en=200;
+            sound.setDirectionalCone( 90, 120, 0.1 );
+
+            
+            var box = new THREE.BoxGeometry(2,1,5);
+            thebox = new THREE.Mesh(box,new THREE.MeshNormalMaterial());
+            thebox.rotation.y=Math.PI;
+  
+            thebox.add(sound);
+            scene.add(thebox);
+            walk.play();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            render();
+            meshMaterial.uniforms.mytime.value = clock.getElapsedTime();
+            console.log (meshMaterial.uniforms.mytime)
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
