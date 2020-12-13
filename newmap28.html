@@ -34,7 +34,7 @@
 <audio loop crossorigin="anonymous" id="Step2" preload="auto" style="display: none" muted>
   <source src="sound/Deep_steps.ogg" type="audio/mpeg">
 </audio>
-<audio loop crossorigin="anonymous" id="alert" preload="auto" muted>
+<audio crossorigin="anonymous" id="alert" preload="auto" muted>
   <source src="sound/nationalalert.mp3" type="audio/mpeg">
 </audio>
 <audio crossorigin="anonymous" id="button" preload="auto" style="display: none" muted>
@@ -43,7 +43,7 @@
 <audio crossorigin="anonymous" id="error" preload="auto" style="display: none" muted>
   <source src="sound/error.wav" type="audio/mpeg">
 </audio>
-<audio loop crossorigin="anonymous" id="envir" preload="auto" muted>
+<audio crossorigin="anonymous" id="envir" preload="auto" muted>
   <source src="sound/Ennard BOSS.mp3" type="audio/mpeg">
 </audio>
 <audio crossorigin="anonymous" id="correct" preload="auto" style="display: none" muted>
@@ -54,6 +54,9 @@
 </audio>
 <audio crossorigin="anonymous" id="jumpscare" preload="auto" style="display: none" muted>
   <source src="sound/Fnaf 6 jumpscare.mp3" type="audio/mpeg">
+</audio>
+<audio crossorigin="anonymous" id="walking" preload="auto" style="display: none" muted>
+  <source src="sound/walkingonafloor.mp3" type="audio/mpeg">
 </audio>
 <script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
 <script type=module>
@@ -97,7 +100,7 @@
     var Progressnow, progresstimesum = 0;
     var cameraauto = 0 , cameraautoflag = 0;
     var camerabox, camerastick, mapaction, CAM = 6, progresstext1, progresstext2, progresstext3, starttext, startflag = 1, isranged = 0, keyboarding = 0, gamestart = 0, progressline, controling = 0, standup = 1, undertable = 0, canentertable = 0, iscanceled = 0;
-    var condict=0;
+    var condict=1;
     var numchance, successflag = 0;
     var movingstep=1, block=1,mov=0, rdoor=false,ldoor=false,movcor=0,wdoor=false; // ghost moving variable
 
@@ -107,7 +110,7 @@
     var progressclock
 		var ts = clock.getElapsedTime(), ts2 = clock.getElapsedTime(),ts3 = clock.getElapsedTime();
     var headflag = 0,playerpositionbox, playerT = 448/112, playerintKey = [], playerintKey2 = [], playerintKey3 = [], jckeys = [], jcintkey = [] , playerlarm, playerrarm, playerts = clock.getElapsedTime(), playerstate = 0, canceltext, cancelingtext;
-    var thebox,sound,audioElement,helper,thebox2,helper2,sound2,Step,Step2,alerts,sound3,monitors,button,error,envir,correct,change,jump;//soundbox
+    var thebox,sound,audioElement,helper,thebox2,helper2,sound2,Step,Step2,alerts,sound3,monitors,button,error,envir,correct,change,jump,walking;//soundbox
     playerclock = new THREE.Clock();
 
 		var on=0;
@@ -1526,6 +1529,8 @@
         change.muted = false;
         jump = document.getElementById('jumpscare');
         jump.muted = false;
+        walking = document.getElementById('walking');
+        walking.muted =false;
 
         envir.volume = 0.1;
         envir.play();
@@ -2156,6 +2161,7 @@
         }
       }
       else if(condict==3){
+        envir.play();
         /////////////////////// agent
         ghost.update(0.01);
         if(targets.position.distanceTo(ghost.ghost.position) < 20 && (infloor==6||infloor==7)){
@@ -3261,7 +3267,7 @@
           playerpositionbox.position.x += test.z;
           playerpositionbox.position.z -= test.x;
 
-
+          walking.play();
           if(standup == 0 && controling == 0 && camera.position.x <= 30 && camera.position.x >= -30) canentertable = 1;
           else canentertable = 0;
 
@@ -3331,6 +3337,7 @@
         }
 
         else if ( keyboard.pressed("D") ){
+          walking.play();
           playerstate = 2;
           camera.getWorldDirection(test);
           camera.position.x -= test.z;
@@ -3402,6 +3409,7 @@
 
         }
         else if ( keyboard.pressed("W") ){
+          walking.play();
           playerstate = 2;
           camera.getWorldDirection(test);
           camera.position.x += test.x;
@@ -3473,6 +3481,7 @@
           
         }
         else if ( keyboard.pressed("S") ){
+          walking.play();
           playerstate = 2;
           camera.getWorldDirection(test);
           camera.position.x -= test.x;
