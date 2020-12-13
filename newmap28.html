@@ -22,37 +22,37 @@
     </style>
 </head>
 <body>
-<audio loop crossorigin="anonymous" id="walk" preload="auto" style="display: none">
+<audio loop crossorigin="anonymous" id="walk" preload="auto" style="display: none" muted>
 		<source src="sound/No Party For Cao Dong [The Specter].mp3" type="audio/mpeg">
 </audio>
-<audio crossorigin="anonymous" id="monitor" preload="auto" style="display: none">
+<audio crossorigin="anonymous" id="monitor" preload="auto" style="display: none" muted>
   <source src="sound/Put_down.ogg" type="audio/mpeg">
 </audio>
-<audio loop crossorigin="anonymous" id="Step" preload="auto" style="display: none">
+<audio loop crossorigin="anonymous" id="Step" preload="auto" style="display: none" muted>
   <source src="sound/Deep_steps.ogg" type="audio/mpeg">
 </audio>
-<audio loop crossorigin="anonymous" id="Step2" preload="auto" style="display: none">
+<audio loop crossorigin="anonymous" id="Step2" preload="auto" style="display: none" muted>
   <source src="sound/Deep_steps.ogg" type="audio/mpeg">
 </audio>
-<audio loop crossorigin="anonymous" id="alert" preload="auto" style="display: none">
+<audio loop crossorigin="anonymous" id="alert" preload="auto" style="display: none" muted>
   <source src="sound/nationalalert.mp3" type="audio/mpeg">
 </audio>
-<audio crossorigin="anonymous" id="button" preload="auto" style="display: none">
+<audio crossorigin="anonymous" id="button" preload="auto" style="display: none" muted>
   <source src="sound/BUTTON.mp3" type="audio/mpeg">
 </audio>
-<audio crossorigin="anonymous" id="error" preload="auto" style="display: none">
+<audio crossorigin="anonymous" id="error" preload="auto" style="display: none" muted>
   <source src="sound/error.wav" type="audio/mpeg">
 </audio>
-<audio loop crossorigin="anonymous" id="envir" preload="auto" style="display: none">
+<audio loop crossorigin="anonymous" id="envir" preload="auto" style="display: none" muted>
   <source src="sound/Ennard BOSS.mp3" type="audio/mpeg">
 </audio>
-<audio crossorigin="anonymous" id="correct" preload="auto" style="display: none">
+<audio crossorigin="anonymous" id="correct" preload="auto" style="display: none" muted>
   <source src="sound/poka01.mp3" type="audio/mpeg">
 </audio>
-<audio crossorigin="anonymous" id="change" preload="auto" style="display: none">
+<audio crossorigin="anonymous" id="change" preload="auto" style="display: none" muted>
   <source src="sound/changesound.mp3" type="audio/mpeg">
 </audio>
-<audio crossorigin="anonymous" id="jumpscare" preload="auto" style="display: none">
+<audio crossorigin="anonymous" id="jumpscare" preload="auto" style="display: none" muted>
   <source src="sound/Fnaf 6 jumpscare.mp3" type="audio/mpeg">
 </audio>
 <script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
@@ -1507,15 +1507,25 @@
         clock = new THREE.Clock();
         ////////////////////// SOUND source
         Step2 = document.getElementById('Step2');
+        Step2.muted = false;
         Step = document.getElementById('Step');
+        Step.muted = false;
         alerts = document.getElementById('alert');
+        alerts.muted = false;
         monitors =document.getElementById('monitor');
+        monitors.muted = false;
         button = document.getElementById('button');
+        button.muted = false;
         error = document.getElementById('error');
+        error.muted = false;
         envir = document.getElementById('envir');
+        envir.muted = false;
         correct = document.getElementById('correct');
+        correct.muted = false;
         change = document.getElementById('change');
+        change.muted = false;
         jump = document.getElementById('jumpscare');
+        jump.muted = false;
 
         envir.volume = 0.1;
         envir.play();
