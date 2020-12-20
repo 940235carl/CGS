@@ -77,7 +77,7 @@
 
     var Islocal = 1; ///圖片路徑  1 = 路徑     else = imgur
 
-    var gamestartflag = 0, gamepauseflag = 1, gamewinflag = 0, startbuttom, gametitletext, pausebuttom, gamepausetext, outroomtext, outroomrange = 0, wintext,deadtext, timecountdown, countdowncorrectflag, countdownerrorflag;
+    var gamestartflag = 0, gamepauseflag = 0, gamewinflag = 0, startbuttom, gametitletext, pausebuttom, gamepausetext, outroomtext, outroomrange = 0, wintext,deadtext, timecountdown, countdowncorrectflag, countdownerrorflag;
 
     var keyboard = new KeyboardState();
     var camera, camera2, scene, sceneHUD, renderer, cameraHUD, sceneRTT, renderTarget;
@@ -113,7 +113,7 @@
     var block=1,mov=0, rdoor=false,ldoor=false,movcor=0,wdoor=false; // ghost moving variable
 
 		var controls, stats, clock, ghost, ghost2, gui, t = 0, t2 = 0,t3 = 0, gControl, steps, keys = [], backkeys = [] ,intkey = [], backintkey = [], move, buildMove;//鬼
-		var T = 0.7, T2= 4.0,T3= 0.3,ready = 0; 
+		var T = 2.0, T2= 4.0,T3= 0.3,ready = 0; 
 		var clock = new THREE.Clock(),playerclock = new THREE.Clock(),backclock = new THREE.Clock(),jcclock = new THREE.Clock();
     var progressclock = new THREE.Clock();
 		var ts = clock.getElapsedTime(), ts2 = clock.getElapsedTime(),ts3 = clock.getElapsedTime();
@@ -185,26 +185,26 @@
 
     var jcpose3={
 				
-				jcbodyRotate: 0.1317,
+		jcbodyRotate: 0.1317,
         jcbodyHeight: 0.001,
         jcbodyRotateY: 1.1191,
-				jcrightHandX: -0.7778,
-				jcrightHand2X: 0.001,
+		jcrightHandX: -0.7778,
+		jcrightHand2X: 0.001,
         jcrightHandZ: -0.1492,
-				jcrightHand2Z: 0.301,
+		jcrightHand2Z: 0.301,
         jcleftHandX: -0.7778,
-				jcleftHand2X: 0.001,
+		jcleftHand2X: 0.001,
         jcleftHandZ: 0.1492,
-				jcleftHand2Z: -0.001,
+		jcleftHand2Z: -0.001,
         jcrightLegX: 0.001,
-				jcrightLeg2X: 0.001,
+		jcrightLeg2X: 0.001,
         jcrightLegZ: 0.001,
-				jcrightLeg2Z: 0.001,
+		jcrightLeg2Z: 0.001,
         jcleftLegX: 0.001,
-				jcleftLeg2X: 0.001,
+		jcleftLeg2X: 0.001,
         jcleftLegZ: 0.001,
-				jcleftLeg2Z: 0.001,
-				jchead2:1.7645
+		jcleftLeg2Z: 0.001,
+		jchead2:1.7645
 		}
 		
 		var jcpose4={
@@ -380,7 +380,7 @@
       bodyRotate: 0.001,
       bodyRotate: 0.001,
       bodyHeight: 0.001,
-      bodyRotateY: 0.001,
+	  bodyRotateY: 0.001,
       rightHandX: -0.1876,
       rightHand2X: -1.1864,
       rightHandZ: -0.7529,
@@ -697,7 +697,6 @@
 		}
 		
 		var backpose4={
-
       backbodyRotate: 0.001,
       backbodyHeight: 1.008,
       backbodyRotateY: 0.001,
@@ -723,7 +722,6 @@
 		}
 		
 		var backpose5={
-
       backbodyRotate: 0.001,
       backbodyHeight: 1.008,
       backbodyRotateY: 0.001,
@@ -953,7 +951,7 @@
             this.toe5.rotation.z=-6.3;
             
             this.toe6 = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 1, 6, 32),new THREE.MeshPhongMaterial({map:texture,color:'#747d8f'}),gg);
-            this.toe6.position.set(2.9,-10,8);
+                    this.toe6.position.set(2.9,-10,8);
             this.toe6.rotation.x=-7.8;
             this.toe6.rotation.z=-6.2;
             
@@ -1196,8 +1194,8 @@
             //this.lip.add(this.teeth,this.teeth2,this.teeth3,this.teeth4);
             //this.lip2.add(this.teeth5,this.teeth6,this.teeth7,this.teeth8);
 
-            if(RTT == 0) scene.add(this.ghost);
-            else sceneRTT.add(this.ghost);
+            if(RTT == 0) sceneRTT.add(this.ghost);
+            else scene.add(this.ghost);
         
             this.pos = pos;
             this.vel = new THREE.Vector3();
@@ -1334,9 +1332,29 @@
         }
 
         setClear(){
-          this.body.rotaton.x = 0.0;
-          this.body.rotation.y = 0.0;
-          this.position.y = 0.0;
+          
+		this.body.rotation.x = 0.1317;
+        this.body.position.y = 0.001;
+        this.body.rotation.y = 1.1191;
+		this.rightHand.rotation.x = -0.7778;
+		this.rightHand2.rotation.x = 0.001;
+        this.rightHand.rotation.z -0.1492;
+		this.rightHand2.rotation.Z= 0.301;
+        this.leftHand.rotation.x= -0.7778;
+		this.leftHand2.rotation.x= 0.001;
+        this.leftHand.rotation.z= 0.1492;
+		this.leftHand2.rotation.z= -0.001;
+        this.rightLeg.rotation.x= 0.001;
+		this.rightLeg2.rotation.x= 0.001;
+        this.rightLeg.rotation.z= 0.001;
+		this.rightLeg2.rotation.z= 0.001;
+        this.leftLeg.rotation.x= 0.001;
+		this.leftLeg2.rotation.x= 0.001;
+        this.leftLeg.rotation.z=0.001;
+		this.leftLeg2.rotation.z = 0.001;
+		this.head2.rotation.x = 1.7645;
+		  
+
         }
 
 
@@ -1554,7 +1572,7 @@
         DVsounds = document.getElementById('dvsound');
         DVsounds2 = document.getElementById('dvsound2');
 		
-        envir.volume = 0.1;
+        envir.volume = 0.03;
         walking.volume = 0.05;
         envir.play();
 
@@ -1631,15 +1649,15 @@
       sceneHUD = new THREE.Scene();
       //camera.lookAt(0,200,-100);
       //////////////////OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOrbit here////////////////////////////////////
-      //let controls = new OrbitControls(camera, renderer.domElement);
-
+      let controls = new OrbitControls(camera, renderer.domElement);
+        
       ////////////////////////////////////////////////////////////////
       //var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
       //scene.add(gridXZ);
-      dininglight = new THREE.PointLight(0xffffff, 1, 300);               /////300
+      dininglight = new THREE.PointLight(0xffffff, 1, 1000);               /////300
       dininglight.position.set(-150, 100, -650);
       scene.add(dininglight);
-      Rdininglight = new THREE.PointLight(0xffffff, 1, 300);             /////300
+      Rdininglight = new THREE.PointLight(0xffffff, 1, 500);             /////300
       Rdininglight.position.set(-150, 100, -650);
       sceneRTT.add(Rdininglight);
       
@@ -1867,7 +1885,7 @@
         RTTreadModel('Table_01', 80, 0, 16.5, 75, -Math.PI/2, 0, 0);
 
       makemap();
-      gamestartbuttom();
+      //gamestartbuttom();
       gamepausebuttom();
       
 
@@ -2626,7 +2644,7 @@
       //console.log(playerpositionbox.position);
       //////////////////////////////////////// alert box
       angle = 0.2;
-      if(alert==1){
+      if(alert==1&&condict>3){
         group.rotation.y+=angle;
         if(open==0){
             playalert();
@@ -2648,7 +2666,7 @@
           iscanceled = 1;
           headflag = 1;
           setTimeout(headlook,20);
-          canceltext.position.set(200, 0, 100);
+          //canceltext.position.set(200, 0, 100);
           keyboarding = 0;
           setTimeout(canceled,3000);
           progressclock.stop();
@@ -2674,7 +2692,7 @@
             progress();
           }
         }
-        if(stop == 0)camerarotation(rotationy);
+        if(stop == 0)//camerarotation(rotationy);
         if(stop == 1 && numflag == 0 && Progressnow < 101){
           numchance = Math.random()*1000;
           if(numchance > 985 && numchance < 994){
@@ -2828,28 +2846,28 @@
         if(playerpositionbox.position.x <= -30 && camera.position.x >= -65 && startflag == 1 && Progressnow < 101){
           camera.getWorldDirection(playervector);
           if(playerpositionbox.position.z >= -45 && camera.position.z <= -30 && startflag == 1 && controling == 0 && standup == 1 && playervector.x < -0.534 && playervector.x > -0.7729 && playervector.z < -0.6344 && playervector.z > -0.8454 ){
-            starttext.position.set(-4.5, -7, 100);
+            //starttext.position.set(-4.5, -7, 100);
             isranged = 1;
           }   
           else{
-            starttext.position.set(200, 0, 100);
+            //starttext.position.set(200, 0, 100);
             isranged = 0;
           }
         }
         else {
-            starttext.position.set(200, 0, 100);
+            //starttext.position.set(200, 0, 100);
             isranged = 0;
         }
         if(playerpositionbox.position.x <= -30 && camera.position.x >= -65 && iscanceled == 1 && Progressnow < 101){
           if(playerpositionbox.position.z >= -45 && camera.position.z <= -30 && iscanceled == 1){
-            cancelingtext.position.set(-2, -7, 100);
+            //cancelingtext.position.set(-2, -7, 100);
           }   
           else{
-            cancelingtext.position.set(200, 0, 100);
+           // cancelingtext.position.set(200, 0, 100);
           }
         }
         else {
-          cancelingtext.position.set(200, 0, 100);
+         // cancelingtext.position.set(200, 0, 100);
         }
 
         if(stop == 1 && numflag == 0 || stop == 1 && numflag > 10 && numflag < 30){
@@ -2863,7 +2881,16 @@
         t %= 30.6;
         keyframe(t);
         if(keyflag==1){
-              ghost.rightHand.rotation.x = intkey[3];
+              ghost.ghost.rotation.x = intkey[0];
+                ghost2.ghost.rotation.x = intkey[0];
+                ghost.ghost.position.y = intkey[1];
+                ghost2.ghost.position.y = intkey[1];
+                
+                ghost.ghost.rotation.y = intkey[2];
+                ghost2.ghost.rotation.y = intkey[2];
+			  
+			  
+			  ghost.rightHand.rotation.x = intkey[3];
               ghost2.rightHand.rotation.x = intkey[3];
               ghost.rightHand.rotation.z = intkey[4];
               ghost2.rightHand.rotation.z = intkey[4];
@@ -2960,7 +2987,8 @@
             
                 t3 += jcclock.getDelta();
                 t3 %= 30.6;
-                jckeyframe(t3);
+                
+				jckeyframe(t3);
 
                 ghost.ghost.rotation.x = jcintkey[0];
                 ghost2.ghost.rotation.x = jcintkey[0];
@@ -8936,56 +8964,56 @@ function errorevend(){
     var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
     ////////////////dinning
     ////num2
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-30, 0.0, -500), 50);
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-75, 0.0, -500), 50);
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-120, 0.0, -500), 50);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-30, 0.0, -500), 60);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-75, 0.0, -500), 60);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-120, 0.0, -500), 60);
 
     ////num5
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-30, 0.0, -650), 50);
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-75, 0.0, -650), 50);
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-120, 0.0, -650), 50);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-30, 0.0, -650), 60);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-75, 0.0, -650), 60);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-120, 0.0, -650), 60);
 
 
     ////num8
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-30, 0.0, -800), 50);
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-75, 0.0, -800), 50);
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-120, 0.0, -800), 50);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-30, 0.0, -800), 60);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-75, 0.0, -800), 60);
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-120, 0.0, -800), 60);
 
 
     ////num1
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -545), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -500), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -455), 50)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -545), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -500), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -455), 60)
 
 
     ////num4
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-230, 0.0, -650), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -650), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-320, 0.0, -650), 50)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-230, 0.0, -650), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -650), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-320, 0.0, -650), 60)
 
 
     ////num7
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-230, 0.0, -800), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -800), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(-320, 0.0, -800), 50)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-230, 0.0, -800), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-275, 0.0, -800), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(-320, 0.0, -800), 60)
 
 
     ////num9
-    obs[obsize++] = new Obstacle (new THREE.Vector3(170, 0.0, -800), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -800), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(80, 0.0, -800), 50)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(170, 0.0, -800), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -800), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(80, 0.0, -800), 60)
 
 
 
     ////num6
-    obs[obsize++] = new Obstacle (new THREE.Vector3(170, 0.0, -650), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -650), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(80, 0.0, -650), 50)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(170, 0.0, -650), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -650), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(80, 0.0, -650), 60)
 
     ////num3
-    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -545), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -500), 50)
-    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -455), 50)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -545), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -500), 60)
+    obs[obsize++] = new Obstacle (new THREE.Vector3(125, 0.0, -455), 60)
 
 
 
@@ -9240,7 +9268,7 @@ function errorevend(){
     var geometry = new THREE.BoxGeometry( 1, 1, 1 );
     var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
     playerpositionbox = new THREE.Mesh( geometry, material );
-
+	
     playerlarm = makeArm();
     playerpositionbox.add (playerlarm);
     playerlarm.position.set (1.26*5+0.62*5, 7.57*5, 0);
@@ -9260,9 +9288,12 @@ function errorevend(){
     ghost.ghost.position.set(-45,0,-1050);
     ghost2.ghost.position.set(-300,300,-1050);
     fin=0,ran=0,infloor=0,com=0,release=0,stop=0,inclose=0,keyflag=1,look=0,open=0,catchs=0,goin=0,res=0;
-    ghost.setClear();
-    ghost2.setClear();
-
+    //t3 = 0;
+	//ts3 = clock.getElapsedTime();
+	ghost.changebodyY(95);
+	//ghost.setClear();
+    //ghost2.setClear();
+		
     
 
   }

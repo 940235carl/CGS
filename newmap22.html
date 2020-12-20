@@ -94,7 +94,7 @@
     var progressclock
 		var ts = clock.getElapsedTime(), ts2 = clock.getElapsedTime(),ts3 = clock.getElapsedTime();
     var headflag = 0,playerpositionbox, playerT = 448/112, playerintKey = [], playerintKey2 = [], playerintKey3 = [], jckeys = [], jcintkey = [] , playerlarm, playerrarm, playerts = clock.getElapsedTime(), playerstate = 0, canceltext, cancelingtext;
-    var thebox,sound,audioElement,helper,thebox2,helper2,sound2,Step,Step2,alerts,sound3,monitors,button,error;//soundbox
+    var thebox,sound,audioElement,helper,thebox2,helper2,sound2,Step,Step2,alerts,sound3,monitors,button,error,DVbox,DVbox2,DVsound,DVsound2;//soundbox
     playerclock = new THREE.Clock();
 
 		var on=0;
@@ -1928,8 +1928,16 @@
       thebox2.add(sound2);
       thebox2.position.set(100,40,-40);
       scene.add(thebox2);
-      
 
+      DVsound = new THREE.PositionalAudio(listener);
+      DVsound.setMediaElementSource( alerts );
+      DVsound.setRefDistance( 80 );
+      DVsound.setDirectionalCone( 90, 180, 0.05 );
+
+      DVbox = new THREE.Mesh(box,new THREE.MeshBasicMaterial({color:'black'}));
+      DVbox.position.set(-100,40,-40);
+      DVbox.add(DVsound);
+    
       ////////////////////////////////////////// alert box
       var geometry = new THREE.CylinderGeometry(1.8,1.8,5,32);
       var material = new THREE.MeshBasicMaterial({color:'#eb347a',opacity:0.7,transparent:true});
